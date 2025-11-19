@@ -1,13 +1,26 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="el">
 <head>
-<meta charset="UTF-8">
-<title>Mouhtis AC Planner</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<h1>Mouhtis AC Planner</h1>
-<p>Prototype web app will go here.</p>
-<script src="app.js"></script>
-</body>
-</html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mouhtis AC Planner — Full</title>
+
+<!-- CDN libraries for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{--accent:#1e88e5;--muted:#666}
+  body{font-family:Arial,Helvetica,sans-serif;margin:12px;background:#fafafa;color:#222}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  h1{font-size:20px;margin:0}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+  .controls input[type=file]{display:inline-block}
+  button,input,select{padding:8px;border-radius:6px;border:1px solid #ddd;background:white}
+  button{cursor:pointer}
+  #canvasWrap{border:1px solid #ccc;background:white;display:block;max-width:100%;overflow:auto}
+  canvas{display:block;max-width:100%;height:auto}
+  .panel{display:grid;grid-template-columns:1fr 360px;gap:12px}
+  .sidebar{background:#fff;padding:10px;border:1px solid #eee;border-radius:6px;max-height:78vh;overflow:auto}
+  .rooms-table{width:100%;border-collapse:collapse}
+  .rooms-table th,.rooms-table td{
