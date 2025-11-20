@@ -1,336 +1,301 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="el">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Mouhtis AC Planner — Πλήρης (Ελληνικά)</title>
-
-<!-- βιβλιοθήκες για εξαγωγή PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<meta charset="UTF-8">
+<title>Mouhtis AC Planner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-:root{
---bg:#f5f7fb; --card:#ffffff; --accent:#0b74de; --muted:#566075;
+body{
+font-family: Arial, sans-serif;
+margin:0;
+background:#f5f5f5;
 }
-*{box-sizing:border-box;font-family:Arial, Helvetica, sans-serif}
-body{margin:0;background:var(--bg);color:#111}
-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#fff;border-bottom:1px solid #e6e9ef}
-h1{margin:0;font-size:18px}
-.toolbar{display:flex;gap:8px;align-items:center}
-.btn{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
-.btn.secondary{background:#fff;color:var(--accent);border:1px solid #cfe3fb}
-.container{display:flex;gap:14px;padding:14px;max-width:1200px;margin:12px auto}
-.left{flex:1;background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.05)}
-.right{width:360px;min-width:260px;background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(15,23,42,0.05);height:78vh;overflow:auto}
-#canvasWrap{border:1px dashed #e6eefc;border-radius:8px;overflow:auto;background:#fff;padding:8px}
-canvas{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff}
-.label{font-size:13px;color:var(--muted);margin-top:8px}
-.rooms-table{width:100%;border-collapse:collapse;margin-top:8px}
-.rooms-table th,.rooms-table td{padding:6px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:left}
-.small{font-size:13px;color:var(--muted)}
-input[type="file"]{padding:6px}
-.model{display:flex;justify-content:space-between;padding:8px 6px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px}
-.chip{background:#f1f5f9;padding:4px 8px;border-radius:999px;font-size:12px}
-footer{padding:10px;text-align:center;color:var(--muted);font-size:13px}
-@media(max-width:900px){.container{flex-direction:column}.right{width:100%}}
+header{
+background:#1f2937;
+color:#fff;
+padding:15px;
+text-align:center;
+font-size:22px;
+font-weight:bold;
+}
+main{
+max-width:1100px;
+margin:0 auto;
+padding:20px;
+}
+section{
+background:#fff;
+padding:15px;
+margin-bottom:20px;
+border-radius:8px;
+box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+h2{
+font-size:18px;
+margin-top:0;
+}
+input[type="file"]{
+margin:10px 0;
+}
+canvas{
+display:block;
+max-width:100%;
+border:1px solid #ccc;
+border-radius:6px;
+background:#fff;
+touch-action:none; /* ΣΗΜΑΝΤΙΚΟ ΓΙΑ ΚΙΝΗΤΟ */
+}
+button{
+padding:10px 14px;
+border:none;
+border-radius:6px;
+margin-right:10px;
+cursor:pointer;
+font-weight:bold;
+margin-top:10px;
+}
+.drawbtn{background:#16a34a;color:#fff;}
+.placebtn{background:#2563eb;color:#fff;}
+.clearbtn{background:#dc2626;color:#fff;}
 </style>
 </head>
+
 <body>
-<header>
-<div style="display:flex;gap:12px;align-items:center">
-<h1>Mouhtis AC Planner — Πλήρης (Ελληνικά)</h1>
-<div class="small">Πρότυπο client-side για μελέτη κατοικίας</div>
-</div>
+<header>Mouhtis AC Planner</header>
 
-<div class="toolbar">
-<button class="btn" id="exportPdf">Εξαγωγή PDF</button>
-<button class="btn secondary" id="helpBtn">Βοήθεια</button>
-</div>
-</header>
+<main>
 
-<div class="container">
-<div class="left">
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-<input id="file" type="file" accept="image/*" />
-<button class="btn" id="drawRoom">Σχεδίαση δωματίου</button>
-<button class="btn" id="placeAC">Τοποθέτηση AC (χειροκίνητα)</button>
-<button class="btn" id="autoPlace">Αυτόματη τοποθέτηση 2 AC</button>
-<button class="btn secondary" id="clearAll">Καθάρισμα</button>
-<button class="btn" id="calc">Υπολογισμός BTU</button>
-</div>
+<section>
+<h2>1. Ανέβασμα Κάτοψης</h2>
+<input type="file" id="upload">
+<canvas id="cv" width="1200" height="800"></canvas>
+<button class="drawbtn" id="drawRoomBtn">Σχεδίαση Δωματίου</button>
+<button class="placebtn" id="placeACBtn">Τοποθέτηση Κλιματιστικού</button>
+<button class="clearbtn" id="clearBtn">Καθαρισμός</button>
+</section>
 
-<div id="canvasWrap"><canvas id="cv" width="1000" height="700"></canvas></div>
-<div style="margin-top:8px" class="small">Συμβουλές: Ανεβάστε κάτοψη (JPG/PNG) → πατήστε «Σχεδίαση δωματίου» και σύρετε για να δημιουργήσετε ορθογώνια για κάθε δωμάτιο. Στη δεξιά στήλη συμπληρώστε τις παραμέτρους.</div>
-</div>
+<section>
+<h2>2. Λίστα Δωματίων</h2>
+<div id="roomsList">Δεν υπάρχουν δωμάτια ακόμα.</div>
+</section>
 
-<aside class="right">
-<h3 style="margin:0 0 8px 0">Δωμάτια & Παράμετροι</h3>
-<div id="roomsList" class="small">Δεν υπάρχουν δωμάτια. Σχεδιάστε δωμάτια πάνω στην κάτοψη για να τα επεξεργαστείτε.</div>
+<section>
+<h2>3. Προτάσεις Κλιματιστικών</h2>
+<div id="acResults">Δεν έχουν οριστεί δωμάτια.</div>
+</section>
 
-<h3 style="margin-top:12px">Αποτελέσματα</h3>
-<div id="results" class="small">Πατήστε «Υπολογισμός BTU» για αποτελέσματα.</div>
-
-<h3 style="margin-top:12px">Προτάσεις μοντέλων</h3>
-<div style="display:flex;gap:8px;margin-bottom:8px">
-<input id="budget" type="number" placeholder="Προϋπολογισμός (€)" style="flex:1;padding:8px" value="1300"/>
-<label style="display:flex;align-items:center;gap:6px"><input id="dehum" type="checkbox" checked/> αφύγρανση</label>
-</div>
-<div id="modelsList"></div>
-
-<h3 style="margin-top:12px">Σημειώσεις Αυτόματης Τοποθέτησης</h3>
-<ul class="small">
-<li>Το σύστημα τοποθετεί 2 κλιματιστικά στα δύο δωμάτια με το μεγαλύτερο φορτίο.</li>
-<li>Μπορείτε να τοποθετήσετε χειροκίνητα με «Τοποθέτηση AC».</li>
-</ul>
-
-</aside>
-</div>
-
-<footer>Prototype by Mouhtis — πείτε μου αν θέλετε αυτόματη ανίχνευση δωματίων ή αποθήκευση έργων.</footer>
+</main>
 
 <script>
-/* Πλήρης Ελληνική έκδοση client-side */
-const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-let bgImg = null;
-let mode = 'select'; // 'draw'|'place'|'select'
-let drawing = false, start=null;
-let last = {x:0,y:0};
-let rooms = []; // {x,y,w,h,name,area,height,windows,win_u,occupants,ins}
-let acMarkers = []; // {x,y,roomIndex}
-const BTU_PER_M2 = 341.2;
-const W_TO_BTU = 3.412;
+const upload = document.getElementById("upload");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
 
-// Δείγμα μοντέλων VFM (μπορείτε να τα επεξεργαστείτε)
-const MODELS = [
-{brand:'Hisense', model:'Europa 12K', btu:12000, price:330, dehum:true, warranty:5},
-{brand:'Hisense', model:'Europa 9K', btu:9000, price:290, dehum:true, warranty:5},
-{brand:'Midea', model:'Xtreme 12K', btu:12000, price:420, dehum:true, warranty:5},
-{brand:'Gree', model:'Mistral 12K', btu:12000, price:480, dehum:true, warranty:3},
-{brand:'Inventor', model:'9K', btu:9000, price:310, dehum:true, warranty:5},
-{brand:'Daikin', model:'Lite 12K', btu:12000, price:650, dehum:true, warranty:5}
-];
+let img = null;
+let rooms = [];
+let acMarkers = [];
+let mode = null;
+let drawing = false;
+let start = null;
+let last = null;
 
-// Βοηθητικές συναρτήσεις
-function resizeCanvasTo(w,h){ cv.width=w; cv.height=h; drawAll(); }
-function screenToCanvas(evt){
-const r = cv.getBoundingClientRect();
-const x = (evt.clientX - r.left) * (cv.width / r.width);
-const y = (evt.clientY - r.top) * (cv.height / r.height);
-return {x,y};
-}
-
-function drawAll(){
-ctx.clearRect(0,0,cv.width,cv.height);
-if(bgImg) ctx.drawImage(bgImg,0,0,cv.width,cv.height);
-else { ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); }
-// ζωγράφισε δωμάτια
-rooms.forEach((r,i)=>{
-ctx.save();
-ctx.strokeStyle = '#0b74de';
-ctx.lineWidth = 2;
-ctx.strokeRect(r.x,r.y,r.w,r.h);
-ctx.fillStyle = 'rgba(11,116,222,0.06)';
-ctx.fillRect(r.x,r.y,r.w,r.h);
-ctx.fillStyle = '#0b2540';
-ctx.font = '14px Arial';
-const label = (r.name && r.name.trim())? r.name : 'Δωμάτιο '+(i+1);
-ctx.fillText(label + (r.area? ' ('+r.area+' m²)':''), r.x+8, r.y+18);
-ctx.restore();
-});
-// AC σημεία
-acMarkers.forEach(m=>{
-ctx.beginPath();
-ctx.fillStyle = '#000';
-ctx.arc(m.x,m.y,9,0,Math.PI*2);
-ctx.fill();
-ctx.closePath();
-ctx.fillStyle='white'; ctx.font='10px Arial'; ctx.fillText('AC', m.x-10, m.y+3);
-});
-}
-drawAll();
-
-// ανέβασμα εικόνας
-document.getElementById('file').addEventListener('change', e=>{
-const f = e.target.files[0]; if(!f) return;
-const reader = new FileReader();
-reader.onload = ev=>{
-const img = new Image();
-img.onload = ()=>{
-const maxW = 1000, maxH = 700;
-let iw = img.width, ih = img.height;
-const ratio = Math.min(maxW/iw, maxH/ih, 1);
-const w = Math.round(iw*ratio), h = Math.round(ih*ratio);
-bgImg = img;
-resizeCanvasTo(w,h);
-};
+// ----------------------------
+// Φόρτωμα εικόνας κάτοψης
+// ----------------------------
+upload.addEventListener("change", e=>{
+const file = e.target.files[0];
+if(!file) return;
+const r = new FileReader();
+r.onload = ev=>{
+img = new Image();
+img.onload = ()=> drawAll();
 img.src = ev.target.result;
 };
-reader.readAsDataURL(f);
+r.readAsDataURL(file);
 });
 
-// ποντίκι / αφή
-cv.addEventListener('mousemove', e=>{
-last = screenToCanvas(e);
-if(drawing && mode==='draw' && start){
+// ----------------------------
+// Σχεδίαση όλων
+// ----------------------------
+function drawAll(){
+ctx.clearRect(0,0,cv.width,cv.height);
+if(img) ctx.drawImage(img,0,0,cv.width,cv.height);
+
+// δωμάτια
+rooms.forEach(r=>{
+ctx.save();
+ctx.strokeStyle="#16a34a";
+ctx.lineWidth=2;
+ctx.strokeRect(r.x,r.y,r.w,r.h);
+ctx.restore();
+});
+
+// markers AC
+acMarkers.forEach(m=>{
+ctx.save();
+ctx.fillStyle="#2563eb";
+ctx.beginPath();
+ctx.arc(m.x,m.y,8,0,Math.PI*2);
+ctx.fill();
+ctx.restore();
+});
+}
+
+// ----------------------------
+// Κουμπιά λειτουργιών
+// ----------------------------
+document.getElementById("drawRoomBtn").onclick = ()=>{
+mode = "draw";
+};
+document.getElementById("placeACBtn").onclick = ()=>{
+mode = "place";
+};
+document.getElementById("clearBtn").onclick = ()=>{
+rooms=[];
+acMarkers=[];
 drawAll();
-ctx.save(); ctx.strokeStyle='#16a34a'; ctx.setLineDash([6,4]);
-ctx.strokeRect(start.x, start.y, last.x - start.x, last.y - start.y);
+renderRoomsList();
+renderACResults();
+};
+
+// ----------------------------
+// Pointer event υποστήριξη (κινητό + PC)
+// ----------------------------
+function pointerToCanvas(e){
+const rect = cv.getBoundingClientRect();
+const clientX = e.clientX ?? (e.touches?.[0]?.clientX);
+const clientY = e.clientY ?? (e.touches?.[0]?.clientY);
+return {
+x: (clientX - rect.left) * (cv.width / rect.width),
+y: (clientY - rect.top) * (cv.height / rect.height)
+};
+}
+
+cv.addEventListener("pointerdown", e=>{
+e.preventDefault();
+const p = pointerToCanvas(e);
+last = p;
+
+if(mode === "draw"){
+drawing = true;
+start = p;
+}
+else if(mode === "place"){
+let idx=null;
+rooms.forEach((r,i)=>{
+if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h) idx = i;
+});
+acMarkers.push({x:p.x,y:p.y,roomIndex:idx});
+drawAll();
+renderACResults();
+}
+});
+
+cv.addEventListener("pointermove", e=>{
+const p = pointerToCanvas(e);
+last = p;
+
+if(mode==="draw" && drawing && start){
+drawAll();
+ctx.save();
+ctx.strokeStyle="#16a34a";
+ctx.setLineDash([6,4]);
+ctx.strokeRect(start.x,start.y,p.x-start.x,p.y-start.y);
 ctx.restore();
 }
 });
-cv.addEventListener('mousedown', e=>{
-if(mode==='draw'){ drawing = true; start = screenToCanvas(e); }
-else if(mode==='place'){ const p = screenToCanvas(e); let idx=null; rooms.forEach((r,i)=>{ if(p.x>=r.x && p.y>=r.y && p.x<=r.x+r.w && p.y<=r.y+r.h) idx=i; }); acMarkers.push({x:p.x,y:p.y,roomIndex:idx}); drawAll(); renderRoomsList(); }
-});
-cv.addEventListener('mouseup', e=>{
-if(mode==='draw' && drawing && start){
-const p = screenToCanvas(e);
-const nx = Math.min(start.x,p.x), ny = Math.min(start.y,p.y);
-const nw = Math.abs(p.x - start.x), nh = Math.abs(p.y - start.y);
+
+cv.addEventListener("pointerup", e=>{
+e.preventDefault();
+const p = pointerToCanvas(e);
+
+if(mode==="draw" && drawing && start){
+const nx = Math.min(start.x,p.x);
+const ny = Math.min(start.y,p.y);
+const nw = Math.abs(p.x-start.x);
+const nh = Math.abs(p.y-start.y);
+
 if(nw>20 && nh>20){
-rooms.push({x:nx,y:ny,w:nw,h:nh,name:'',area:'',height:2.7,windows:0,win_u:2.8,occupants:1,ins:1.0});
+rooms.push({
+x:nx, y:ny, w:nw, h:nh,
+name:"",
+area:"",
+height:2.7,
+windows:0,
+ins:1.0
+});
 renderRoomsList();
 }
-start=null; drawing=false; drawAll();
+start=null;
+drawing=false;
+drawAll();
 }
 });
 
-// κουμπιά UI
-document.getElementById('drawRoom').addEventListener('click', ()=>{ mode='draw'; alert('Σχεδίαση: σύρε στο σχέδιο για να δημιουργήσεις ορθογώνιο που αντιπροσωπεύει δωμάτιο.'); });
-document.getElementById('placeAC').addEventListener('click', ()=>{ mode='place'; alert('Τοποθέτηση AC: κάντε κλικ μέσα στο δωμάτιο για να τοποθετήσετε μονάδα.'); });
-document.getElementById('clearAll').addEventListener('click', ()=>{ if(confirm('Θέλετε να διαγραφούν όλα τα δωμάτια και οι σημαίες;')){ rooms=[]; acMarkers=[]; renderRoomsList(); drawAll(); }});
-document.getElementById('autoPlace').addEventListener('click', ()=>{ autoPlace2(); });
-document.getElementById('calc').addEventListener('click', ()=>{ const arr = calculateAll(); showRecommendations(arr); });
-
-// εμφάνιση λίστας δωματίων και φορμών
+// ----------------------------
+// Render Rooms List
+// ----------------------------
 function renderRoomsList(){
-const div = document.getElementById('roomsList');
-if(rooms.length===0){ div.innerHTML = '<div class="small">Κανένα δωμάτιο — σχεδιάστε πρώτα πάνω στο σχέδιο.</div>'; return; }
-let html = '<table class="rooms-table"><tr><th>#</th><th>Όνομα</th><th>m²</th><th>Ύψος</th><th>Παράθυρα</th><th>Uwin</th><th>Άτομα</th><th>Μόνωση</th><th></th></tr>';
-rooms.forEach((r,i)=>{
-html += `<tr>
-<td>${i+1}</td>
-<td><input data-i="${i}" class="r_name" value="${r.name||''}" style="width:95px"/></td>
-<td><input data-i="${i}" class="r_area" value="${r.area||''}" style="width:60px"/></td>
-<td><input data-i="${i}" class="r_height" value="${r.height||2.7}" style="width:50px"/></td>
-<td><input data-i="${i}" class="r_win" value="${r.windows||0}" style="width:60px"/></td>
-<td><input data-i="${i}" class="r_winu" value="${r.win_u||2.8}" style="width:60px"/></td>
-<td><input data-i="${i}" class="r_occ" value="${r.occupants||1}" style="width:50px"/></td>
-<td><input data-i="${i}" class="r_ins" value="${r.ins||1.0}" style="width:50px"/></td>
-<td><button data-i="${i}" class="delRoom" style="padding:6px">Διαγραφή</button></td>
-</tr>`;
-});
-html += '</table>';
-div.innerHTML = html;
-// ακροατές
-Array.from(document.getElementsByClassName('r_name')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].name = el.value; drawAll(); });
-Array.from(document.getElementsByClassName('r_area')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].area = parseFloat(el.value)||''; });
-Array.from(document.getElementsByClassName('r_height')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].height = parseFloat(el.value)||2.7; });
-Array.from(document.getElementsByClassName('r_win')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].windows = parseFloat(el.value)||0; });
-Array.from(document.getElementsByClassName('r_winu')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].win_u = parseFloat(el.value)||2.8; });
-Array.from(document.getElementsByClassName('r_occ')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].occupants = parseInt(el.value)||1; });
-Array.from(document.getElementsByClassName('r_ins')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].ins = parseFloat(el.value)||1.0; });
-Array.from(document.getElementsByClassName('delRoom')).forEach(b=>b.onclick = e=>{ const i = Number(b.dataset.i); rooms.splice(i,1); acMarkers.forEach(m=>{ if(m.roomIndex===i) m.roomIndex=null; else if(m.roomIndex>i) m.roomIndex--; }); renderRoomsList(); drawAll(); });
+const div = document.getElementById("roomsList");
+if(rooms.length===0){ div.innerHTML="Δεν υπάρχουν δωμάτια."; return; }
+
+div.innerHTML = rooms.map((r,i)=>`
+<div style="margin-bottom:10px;padding:10px;border:1px solid #ddd;border-radius:6px;">
+<strong>Δωμάτιο ${i+1}</strong><br>
+Επιφάνεια (m²): <input type="number" value="${r.area}" onchange="updateRoomArea(${i},this.value)">
+Ύψος: <input type="number" value="${r.height}" step="0.1" onchange="updateRoomHeight(${i},this.value)">
+Παράθυρα: <input type="number" value="${r.windows}" onchange="updateRoomWindows(${i},this.value)">
+Μόνωση (1=καλή, 2=μέτρια, 3=κακή):
+<input type="number" value="${r.ins}" onchange="updateRoomIns(${i},this.value)">
+</div>
+`).join("");
 }
 
-// υπολογισμός BTU ανα δωμάτιο
-function calcRoomBTU(r){
-const area = parseFloat(r.area) || 0;
-const base = area * BTU_PER_M2;
-const heightFactor = (parseFloat(r.height)||2.5) / 2.5;
-const deltaT = 14;
-const win_cond_w = (parseFloat(r.windows)||0) * (parseFloat(r.win_u)||2.8) * deltaT;
-const win_btu = Math.round(win_cond_w * W_TO_BTU);
-const people_btu = Math.max(0, (parseInt(r.occupants)||1) - 2) * 600;
-const total = Math.round(base * heightFactor) + win_btu + people_btu;
-const adjusted = Math.round(total * (parseFloat(r.ins)||1.0));
-return {totalBTU: adjusted, breakdown:{base:Math.round(base), windowsBTU: win_btu, people:people_btu}};
+function updateRoomArea(i,v){ rooms[i].area=parseFloat(v); renderACResults(); }
+function updateRoomHeight(i,v){ rooms[i].height=parseFloat(v); renderACResults(); }
+function updateRoomWindows(i,v){ rooms[i].windows=parseInt(v); renderACResults(); }
+function updateRoomIns(i,v){ rooms[i].ins=parseFloat(v); renderACResults(); }
+
+// ----------------------------
+// Υπολογισμός BTU
+// ----------------------------
+function calculateBTU(r){
+if(!r.area) return 0;
+let base = r.area * 500;
+base += r.windows * 600;
+base *= r.ins;
+return Math.round(base);
 }
 
-// υπολογισμός συνολικά
-function calculateAll(){
-if(rooms.length===0){ alert('Σχεδιάστε τουλάχιστον ένα δωμάτιο.'); return []; }
-const arr = rooms.map((r,i)=>{
-const res = calcRoomBTU(r);
-return {index:i, name: r.name || ('Δωμάτιο '+(i+1)), btu: res.totalBTU, area: r.area || '?', breakdown: res.breakdown};
+// ----------------------------
+// Προτάσεις κλιματιστικών
+// ----------------------------
+function renderACResults(){
+const div = document.getElementById("acResults");
+if(rooms.length===0){ div.innerHTML="Δεν υπάρχουν δωμάτια."; return; }
+
+const results = rooms.map((r,i)=>{
+const btu = calculateBTU(r);
+
+return `
+<div style="margin-bottom:10px;padding:12px;border:1px solid #bbb;border-radius:6px;">
+<strong>Δωμάτιο ${i+1}</strong><br>
+Υπολογισμένα BTU: <strong>${btu}</strong><br>
+Προτεινόμενα μοντέλα:
+<ul>
+<li><a target="_blank" href="https://www.skroutz.gr/search?key=9000+btu">9.000 BTU (Σύνδεσμος Skroutz)</a></li>
+<li><a target="_blank" href="https://www.skroutz.gr/search?key=12000+btu">12.000 BTU (Σύνδεσμος Skroutz)</a></li>
+<li><a target="_blank" href="https://www.skroutz.gr/search?key=18000+btu">18.000 BTU (Σύνδεσμος Skroutz)</a></li>
+</ul>
+</div>
+`;
 });
-let html = '<table class="rooms-table"><tr><th>Δωμάτιο</th><th>m²</th><th>BTU</th><th>Προτεινόμενη μονάδα</th></tr>';
-arr.forEach(it=>{
-let sugg = it.btu<=7000 ? '7.000' : it.btu<=10000 ? '9.000' : it.btu<=14000 ? '12.000' : it.btu<=20000 ? '18.000' : '>24.000';
-html += `<tr><td>${it.name}</td><td>${it.area}</td><td>${it.btu}</td><td>${sugg}</td></tr>`;
-});
-html += '</table>';
-document.getElementById('results').innerHTML = html;
-return arr;
+
+div.innerHTML = results.join("");
 }
 
-// αυτόματη τοποθέτηση δύο AC
-function autoPlace2(){
-const arr = calculateAll();
-if(!arr || arr.length===0) return;
-const top = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
-acMarkers = [];
-top.forEach(t=>{
-const r = rooms[t.index];
-const px = r.x + r.w*0.5, py = r.y + r.h*0.22;
-acMarkers.push({x:px,y:py,roomIndex:t.index});
-});
-drawAll();
-renderRoomsList();
-const msg = `<h4>Αυτόματη τοποθέτηση</h4><ol>${top.map(t=>'<li>'+t.name+' — '+t.btu+' BTU</li>').join('')}</ol>`;
-document.getElementById('results').innerHTML += msg;
-}
-
-// προτάσεις μοντέλων (βάσει budget & αφύγρανσης)
-function recommendModels(arr){
-const budget = parseFloat(document.getElementById('budget').value) || 1300;
-const needDehum = document.getElementById('dehum').checked;
-const picks = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
-let recHtml = '';
-picks.forEach(p=>{
-const desired = p.btu<=10000?9000:12000;
-const candidates = MODELS.filter(m=>m.btu >= desired && (!needDehum || m.dehum)).sort((a,b)=>a.price-b.price);
-const choice = candidates.find(m=>m.price <= budget) || candidates[0];
-if(choice){
-recHtml += `<div class="model"><div><strong>${choice.brand} ${choice.model}</strong><div class="small">${choice.btu} BTU • ${choice.warranty} έτη</div></div><div style="text-align:right"><div class="chip">${choice.price}€</div><div class="small">για ${p.name}</div></div></div>`;
-} else {
-recHtml += `<div class="model"><div><strong>Δεν βρέθηκε κατάλληλο μοντέλο</strong><div class="small">Αυξήστε προϋπολογισμό ή απενεργοποιήστε φίλτρα</div></div></div>`;
-}
-});
-document.getElementById('modelsList').innerHTML = recHtml;
-}
-
-// wrapper για εμφάνιση προτάσεων
-function showRecommendations(arr){
-if(!arr || arr.length===0) { document.getElementById('modelsList').innerHTML = '<div class="small">Κανένα αποτέλεσμα.</div>'; return; }
-recommendModels(arr);
-}
-
-// εξαγωγή PDF (screenshot του καμβά + πίνακας αποτελεσμάτων)
-document.getElementById('exportPdf').addEventListener('click', async ()=>{
-const canvasWrap = document.getElementById('canvasWrap');
-const resultsHtml = document.getElementById('results').innerText;
-const shot = await html2canvas(canvasWrap, {scale:1.5});
-const img = shot.toDataURL('image/png');
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF({orientation:'landscape', unit:'px', format:[shot.width+20, shot.height+300]});
-doc.addImage(img, 'PNG', 10, 10, shot.width, shot.height);
-doc.setFontSize(14); doc.text('Mouhtis AC Planner — Αναφορά', 12, shot.height + 40);
-doc.setFontSize(11);
-// wrap results text
-const lines = doc.splitTextToSize(resultsHtml, shot.width);
-doc.text(lines, 12, shot.height + 60);
-doc.save('mouhtis_ac_report.pdf');
-});
-
-// Βοήθεια
-document.getElementById('helpBtn').addEventListener('click', ()=> {
-alert('Οδηγίες:\\n1) Ανεβάστε εικόνα κάτοψης (JPG/PNG)\\n2) Πατήστε "Σχεδίαση δωματίου" και σύρετε για να δημιουργήσετε ορθογώνια\\n3) Συμπληρώστε τα m²/παράμετρους στα πεδία δεξιά\\n4) Πατήστε "Υπολογισμός BTU", μετά "Αυτόματη τοποθέτηση 2 AC"\\n5) Εξάγετε αναφορά με "Εξαγωγή PDF".');
-});
-
-// αρχική σχεδίαση
-drawAll();
 </script>
+
 </body>
 </html>
