@@ -1,75 +1,372 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="el">
 <head>
-  <meta charset="UTF-8" />
-  <title>Mouhtis AC Planner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mouhtis AC Planner — Pro</title>
+
+<!-- libs -->
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --accent:#0b74de; --muted:#6b7280; --danger:#e02424;
+  }
+  *{box-sizing:border-box;font-family:Inter,Arial,Helvetica,sans-serif}
+  body{margin:0;background:var(--bg);color:#111}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(90deg,#fff, #f9fbff);border-bottom:1px solid #e6e9ef}
+  h1{margin:0;font-size:18px}
+  .toolbar{display:flex;gap:8px;align-items:center}
+  button,select,input{font-size:14px}
+  .btn{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .btn.secondary{background:#fff;color:var(--accent);border:1px solid #cfe3fb}
+  .container{display:flex;gap:16px;padding:16px;max-width:1200px;margin:12px auto}
+  .left{flex:1;background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.05)}
+  .right{width:360px;min-width:260px;background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.05);height:78vh;overflow:auto}
+  #canvasWrap{border:1px dashed #e6eefc;border-radius:8px;overflow:auto;background:#fff;padding:8px}
+  canvas{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff}
+  .label{font-size:12px;color:var(--muted);margin-top:8px}
+  .rooms-table{width:100%;border-collapse:collapse;margin-top:8px}
+  .rooms-table th,.rooms-table td{padding:6px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:left}
+  .small{font-size:12px;color:var(--muted)}
+  .controls-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  input[type="file"]{padding:6px}
+  .model{display:flex;justify-content:space-between;padding:8px 6px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px}
+  .chip{background:#f1f5f9;padding:4px 8px;border-radius:999px;font-size:12px}
+  footer{padding:10px;text-align:center;color:var(--muted);font-size:13px}
+  @media(max-width:900px){.container{flex-direction:column}.right{width:100%}}
+</style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="app-title">Mouhtis AC Planner</div>
-    <div class="app-subtitle">Σταθερό UI · Υπολογισμός και μελέτη κλιματισμού</div>
-  </header>
+<header>
+  <div style="display:flex;gap:12px;align-items:center">
+    <h1>Mouhtis AC Planner — Pro</h1>
+    <div class="small">Fully client-side prototype — GitHub Pages</div>
+  </div>
 
-  <main class="app-main">
-    <section class="app-panel app-panel--left">
-      <div class="panel-block">
-        <h2>1. Κάτοψη</h2>
-        <p class="text-muted">
-          Ανέβασε κάτοψη (εικόνα), και σχεδίασε τα δωμάτια πάνω στον καμβά.
-        </p>
-        <input type="file" id="fileInput" accept="image/*" />
+  <div class="toolbar">
+    <button class="btn" id="exportPdf">Export PDF</button>
+    <button class="btn secondary" id="helpBtn">Help</button>
+  </div>
+</header>
 
-        <div class="canvas-wrapper">
-          <canvas id="floorCanvas" width="1000" height="700"></canvas>
-        </div>
+<div class="container">
+  <div class="left">
+    <div class="controls-row">
+      <input id="file" type="file" accept="image/*" />
+      <button class="btn" id="drawRoom">Draw room</button>
+      <button class="btn" id="placeAC">Place AC</button>
+      <button class="btn" id="autoPlace">Auto place 2 AC</button>
+      <button class="btn secondary" id="clearAll">Clear</button>
+      <button class="btn" id="calc">Calculate</button>
+    </div>
 
-        <div class="toolbar">
-          <button id="btnDrawRoom" class="btn btn-primary">
-            Σχεδίαση δωματίου
-          </button>
-          <button id="btnPlaceAC" class="btn">
-            Τοποθέτηση κλιματιστικού
-          </button>
-          <button id="btnClear" class="btn btn-danger">
-            Καθαρισμός
-          </button>
-          <button id="btnCalculate" class="btn btn-accent">
-            Υπολογισμός BTU
-          </button>
-        </div>
-      </div>
-    </section>
+    <div id="canvasWrap"><canvas id="cv" width="1000" height="700"></canvas></div>
+    <div style="margin-top:8px" class="small">Tips: μετά το upload, πάτα «Draw room» και σύρε για να δημιουργήσεις δωμάτια. Στη δεξιά στήλη συμπλήρωσε τις παραμέτρους.</div>
+  </div>
 
-    <aside class="app-panel app-panel--right">
-      <div class="panel-block">
-        <h2>2. Δωμάτια</h2>
-        <p class="text-muted">
-          Τα δωμάτια που σχεδιάζεις εμφανίζονται εδώ. Συμπλήρωσε τα τετραγωνικά,
-          το ύψος, τα παράθυρα και τη μόνωση.
-        </p>
-        <div id="roomsList" class="rooms-list">
-          Δεν υπάρχουν δωμάτια ακόμη.
-        </div>
-      </div>
+  <aside class="right">
+    <h3 style="margin:0 0 8px 0">Rooms & Parameters</h3>
+    <div id="roomsList" class="small">No rooms yet. Draw rooms on the plan to edit details.</div>
 
-      <div class="panel-block">
-        <h2>3. Αποτελέσματα & Προτάσεις</h2>
-        <div id="results" class="results-block">
-          Δεν έχει γίνει ακόμη υπολογισμός.
-        </div>
-        <div id="acSuggestions" class="results-block" style="margin-top:8px;">
-          Προτάσεις κλιματιστικών θα εμφανιστούν μετά τον υπολογισμό.
-        </div>
-      </div>
-    </aside>
-  </main>
+    <h3 style="margin-top:12px">Results</h3>
+    <div id="results" class="small">Press Calculate to compute loads.</div>
 
-  <footer class="app-footer">
-    Mouhtis Tools · Stable UI Template (Minimal Clean) · Παρακάτω αλλάζουμε μόνο το app.js
-  </footer>
+    <h3 style="margin-top:12px">Model Recommendations</h3>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <input id="budget" type="number" placeholder="Budget (€)" style="flex:1;padding:8px" value="1300"/>
+      <label style="display:flex;align-items:center;gap:6px"><input id="dehum" type="checkbox" checked/> dehum</label>
+    </div>
+    <div id="modelsList"></div>
 
-  <script src="app.js"></script>
+    <h3 style="margin-top:12px">Auto-placement notes</h3>
+    <ul class="small">
+      <li>Auto places ACs in top two heat-load rooms, favors center & upper wall.</li>
+      <li>Manual placement: choose "Place AC" and click inside room.</li>
+    </ul>
+
+  </aside>
+</div>
+
+<footer>Prototype by Mouhtis — tell me if you want server-side storage or automatic room detection.</footer>
+
+<script>
+/* PRO VERSION: enhanced single-file app
+ - improved UI
+ - robust room editing table
+ - BTU calc
+ - auto/manual AC placement
+ - model recommendations and filters
+ - export PDF (canvas snapshot + report)
+*/
+
+// state
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let bgImg = null;
+let mode = 'select'; // draw, place, select
+let drawing = false, start=null;
+let last = {x:0,y:0};
+let rooms = []; // {x,y,w,h,name,area,height,windows,win_u,occupants,ins}
+let acMarkers = []; // {x,y,roomIndex}
+const BTU_PER_M2 = 341.2;
+const W_TO_BTU = 3.412;
+
+// VFM MODEL POOL (expandable)
+const MODELS = [
+  {brand:'Hisense Europa', model:'EU-12K', btu:12000, price:330, dehum:true, warranty:5},
+  {brand:'Hisense Europa', model:'EU-9K', btu:9000, price:290, dehum:true, warranty:5},
+  {brand:'Midea Xtreme', model:'MX-12K', btu:12000, price:420, dehum:true, warranty:5},
+  {brand:'Gree Mistral', model:'GR-12K', btu:12000, price:480, dehum:true, warranty:3},
+  {brand:'Inventor', model:'IV-9K', btu:9000, price:310, dehum:true, warranty:5},
+  {brand:'Daikin Lite', model:'DK-12K', btu:12000, price:650, dehum:true, warranty:5}
+];
+
+// helpers
+function resizeCanvasTo(w,h){
+  cv.width = w; cv.height = h; drawAll();
+}
+function screenToCanvas(evt){
+  const r = cv.getBoundingClientRect();
+  const x = (evt.clientX - r.left) * (cv.width / r.width);
+  const y = (evt.clientY - r.top) * (cv.height / r.height);
+  return {x,y};
+}
+
+function drawAll(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(bgImg) ctx.drawImage(bgImg,0,0,cv.width,cv.height);
+  else { ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height); }
+  // rooms
+  rooms.forEach((r,i)=>{
+    ctx.save();
+    ctx.strokeStyle = '#0b74de';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle = 'rgba(11,116,222,0.06)';
+    ctx.fillRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle = '#0b2540';
+    ctx.font = '14px Inter, Arial';
+    const label = (r.name && r.name.trim())? r.name : 'Room '+(i+1);
+    ctx.fillText(label + (r.area? ' ('+r.area+' m²)':''), r.x+8, r.y+18);
+    ctx.restore();
+  });
+  // AC markers
+  acMarkers.forEach(m=>{
+    ctx.beginPath();
+    ctx.fillStyle = '#000';
+    ctx.arc(m.x,m.y,9,0,Math.PI*2);
+    ctx.fill();
+    ctx.closePath();
+    ctx.fillStyle='white'; ctx.font='10px Inter'; ctx.fillText('AC', m.x-10, m.y+3);
+  });
+}
+
+drawAll();
+
+// upload background image
+document.getElementById('file').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      // fit to max area
+      const maxW = 1000, maxH = 700;
+      let iw = img.width, ih = img.height;
+      const ratio = Math.min(maxW/iw, maxH/ih, 1);
+      const w = Math.round(iw*ratio), h = Math.round(ih*ratio);
+      bgImg = img;
+      resizeCanvasTo(w,h);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+// mouse events
+cv.addEventListener('mousemove', e=>{
+  last = screenToCanvas(e);
+  if(drawing && mode==='draw' && start){
+    drawAll();
+    ctx.save(); ctx.strokeStyle='#16a34a'; ctx.setLineDash([6,4]);
+    ctx.strokeRect(start.x, start.y, last.x - start.x, last.y - start.y);
+    ctx.restore();
+  }
+});
+cv.addEventListener('mousedown', e=>{
+  if(mode==='draw'){ drawing = true; start = screenToCanvas(e); }
+  else if(mode==='place'){ const p = screenToCanvas(e); let idx=null; rooms.forEach((r,i)=>{ if(p.x>=r.x && p.y>=r.y && p.x<=r.x+r.w && p.y<=r.y+r.h) idx=i; }); acMarkers.push({x:p.x,y:p.y,roomIndex:idx}); drawAll(); renderRoomsList(); }
+});
+cv.addEventListener('mouseup', e=>{
+  if(mode==='draw' && drawing && start){
+    const p = screenToCanvas(e);
+    const nx = Math.min(start.x,p.x), ny = Math.min(start.y,p.y);
+    const nw = Math.abs(p.x - start.x), nh = Math.abs(p.y - start.y);
+    // minimal size guard
+    if(nw>20 && nh>20){
+      rooms.push({x:nx,y:ny,w:nw,h:nh,name:'',area:'',height:2.7,windows:0,win_u:2.8,occupants:1,ins:1.0});
+      renderRoomsList();
+    }
+    start=null; drawing=false; drawAll();
+  }
+});
+
+// UI buttons
+document.getElementById('drawRoom').addEventListener('click', ()=>{ mode='draw'; alert('Drag on the plan to create a room rectangle.'); });
+document.getElementById('placeAC').addEventListener('click', ()=>{ mode='place'; alert('Click inside a room to place an AC marker.'); });
+document.getElementById('clearAll').addEventListener('click', ()=>{ if(confirm('Clear rooms and markers?')){ rooms=[]; acMarkers=[]; renderRoomsList(); drawAll(); }});
+document.getElementById('autoPlace').addEventListener('click', ()=>{ autoPlace2(); });
+document.getElementById('calc').addEventListener('click', ()=>{ const arr = calculateAll(); showRecommendations(arr); });
+
+// render room list + parameter form
+function renderRoomsList(){
+  const div = document.getElementById('roomsList');
+  if(rooms.length===0){ div.innerHTML = '<div class="small">No rooms — draw on the plan first.</div>'; return; }
+  let html = '<table class="rooms-table"><tr><th>#</th><th>Name</th><th>m²</th><th>h</th><th>windows</th><th>Uwin</th><th>occ</th><th>ins</th><th></th></tr>';
+  rooms.forEach((r,i)=>{
+    html += `<tr>
+      <td>${i+1}</td>
+      <td><input data-i="${i}" class="r_name" value="${r.name||''}" style="width:90px"/></td>
+      <td><input data-i="${i}" class="r_area" value="${r.area||''}" style="width:60px"/></td>
+      <td><input data-i="${i}" class="r_height" value="${r.height||2.7}" style="width:50px"/></td>
+      <td><input data-i="${i}" class="r_win" value="${r.windows||0}" style="width:60px"/></td>
+      <td><input data-i="${i}" class="r_winu" value="${r.win_u||2.8}" style="width:60px"/></td>
+      <td><input data-i="${i}" class="r_occ" value="${r.occupants||1}" style="width:45px"/></td>
+      <td><input data-i="${i}" class="r_ins" value="${r.ins||1.0}" style="width:50px"/></td>
+      <td><button data-i="${i}" class="delRoom" style="padding:6px">Del</button></td>
+    </tr>`;
+  });
+  html += '</table>';
+  div.innerHTML = html;
+  // attach listeners
+  Array.from(document.getElementsByClassName('r_name')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].name = el.value; drawAll(); });
+  Array.from(document.getElementsByClassName('r_area')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].area = parseFloat(el.value)||''; });
+  Array.from(document.getElementsByClassName('r_height')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].height = parseFloat(el.value)||2.7; });
+  Array.from(document.getElementsByClassName('r_win')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].windows = parseFloat(el.value)||0; });
+  Array.from(document.getElementsByClassName('r_winu')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].win_u = parseFloat(el.value)||2.8; });
+  Array.from(document.getElementsByClassName('r_occ')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].occupants = parseInt(el.value)||1; });
+  Array.from(document.getElementsByClassName('r_ins')).forEach(el=>el.onchange = e=>{ rooms[Number(el.dataset.i)].ins = parseFloat(el.value)||1.0; });
+  Array.from(document.getElementsByClassName('delRoom')).forEach(b=>b.onclick = e=>{ const i = Number(b.dataset.i); rooms.splice(i,1); acMarkers.forEach(m=>{ if(m.roomIndex===i) m.roomIndex=null; else if(m.roomIndex>i) m.roomIndex--; }); renderRoomsList(); drawAll(); });
+}
+
+// BTU calculator per room — advanced
+function calcRoomBTU(r){
+  // base = area * BTU_PER_M2
+  const area = parseFloat(r.area)|| (Math.round((r.w*r.h)/100) || 0); // if user didn't supply area, we attempt pixel->m2? Note: keep manual for accuracy
+  const base = area * BTU_PER_M2;
+  const heightFactor = (parseFloat(r.height)||2.5) / 2.5;
+  const deltaT = 14;
+  const win_cond_w = (parseFloat(r.windows)||0) * (parseFloat(r.win_u)||2.8) * deltaT;
+  const win_btu = Math.round(win_cond_w * W_TO_BTU);
+  const people_btu = Math.max(0, (parseInt(r.occupants)||1) - 2) * 600;
+  const total = Math.round(base * heightFactor) + win_btu + people_btu;
+  const adjusted = Math.round(total * (parseFloat(r.ins)||1.0));
+  return {totalBTU: adjusted, breakdown:{base:Math.round(base), windowsBTU: win_btu, people:people_btu}};
+}
+
+function calculateAll(){
+  if(rooms.length===0){ alert('Draw at least one room'); return []; }
+  const arr = rooms.map((r,i)=>{
+    const res = calcRoomBTU(r);
+    return {index:i, name: r.name || ('Room '+(i+1)), btu: res.totalBTU, area: r.area || '?', breakdown: res.breakdown};
+  });
+  // display result table in results
+  let html = '<table class="rooms-table"><tr><th>Room</th><th>Area</th><th>BTU</th><th>Suggested unit</th></tr>';
+  arr.forEach(it=>{
+    let sugg = it.btu<=7000 ? '7,000' : it.btu<=10000 ? '9,000' : it.btu<=14000 ? '12,000' : it.btu<=20000 ? '18,000' : '>24,000';
+    html += `<tr><td>${it.name}</td><td>${it.area}</td><td>${it.btu}</td><td>${sugg}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById('results').innerHTML = html;
+  return arr;
+}
+
+// auto place 2 AC markers (top 2 rooms by demand)
+function autoPlace2(){
+  const arr = calculateAll();
+  if(!arr || arr.length===0) return;
+  const top = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
+  acMarkers = [];
+  top.forEach(t=>{
+    const r = rooms[t.index];
+    // place near upper center but offset to avoid door area (approx.)
+    const px = r.x + r.w*0.5, py = r.y + r.h*0.22;
+    acMarkers.push({x:px,y:py,roomIndex:t.index});
+  });
+  drawAll();
+  renderRoomsList();
+  // show message
+  const msg = `<h4>Auto placement</h4><ol>${top.map(t=>'<li>'+t.name+' — '+t.btu+' BTU</li>').join('')}</ol>`;
+  document.getElementById('results').innerHTML += msg;
+}
+
+// model recommendation based on top demands and filters
+function showRecommendations(arr){
+  const budget = parseFloat(document.getElementById('budget').value) || 1300;
+  const needDehum = document.getElementById('dehum').checked;
+  const picks = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
+  let recHtml = '';
+  picks.forEach(p=>{
+    // choose cheapest model meeting >= suggested capacity
+    const desired = p.btu<=10000?9000:12000;
+    const candidates = MODELS.filter(m=>m.btu >= desired && (!needDehum || m.dehum)).sort((a,b)=>a.price-b.price);
+    const choice = candidates.find(m=>m.price <= budget) || candidates[0];
+    if(choice){
+      recHtml += `<div class="model"><div><strong>${choice.brand} ${choice.model}</strong><div class="small">${choice.btu} BTU • ${choice.warranty}yr</div></div><div style="text-align:right"><div class="chip">${choice.price}€</div><div class="small">for ${p.name}</div></div></div>`;
+    } else {
+      recHtml += `<div class="model"><div><strong>No model found</strong><div class="small">Adjust budget or filters</div></div></div>`;
+    }
+  });
+  document.getElementById('modelsList').innerHTML = recHtml;
+}
+
+// show recommendations wrapper
+function showRecommendationsArr(){
+  const arr = calculateAll();
+  if(arr.length) showRecommendations(arr);
+}
+
+// helper: recs after calculate
+function showRecommendations(arr){
+  showRecommendationsArr(); // reuse
+}
+
+// export PDF (canvas + results)
+document.getElementById('exportPdf').addEventListener('click', async ()=>{
+  const canvasWrap = document.getElementById('canvasWrap');
+  const resultsHtml = document.getElementById('results').innerText;
+  const shot = await html2canvas(canvasWrap, {scale:1.5});
+  const img = shot.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'px', format:[shot.width+20, shot.height+300]});
+  doc.addImage(img, 'PNG', 10, 10, shot.width, shot.height);
+  doc.setFontSize(14); doc.text('Mouhtis AC Planner — Report', 12, shot.height + 40);
+  doc.setFontSize(11); doc.text(resultsHtml, 12, shot.height + 60);
+  doc.save('mouhtis_ac_report.pdf');
+});
+
+// initial render
+renderModelsList();
+drawAll();
+function renderModelsList(){
+  const holder = document.getElementById('modelsList');
+  holder.innerHTML = '';
+  MODELS.forEach(m=>{
+    const div = document.createElement('div'); div.className='model';
+    div.innerHTML = `<div><strong>${m.brand} ${m.model}</strong><div class="small">${m.btu} BTU • ${m.warranty}yr</div></div><div style="text-align:right"><div class="chip">${m.price}€</div><div class="small">${m.dehum? 'Dehum':''}</div></div>`;
+    holder.appendChild(div);
+  });
+}
+
+// Help button
+document.getElementById('helpBtn').addEventListener('click', ()=> {
+  alert('Help:\\n1) Upload plan image (JPG/PNG)\\n2) Draw rooms (Draw room) by dragging\\n3) Fill room params on right\\n4) Calculate -> Auto place 2 AC -> Export PDF');
+});
+
+</script>
 </body>
 </html>
+
