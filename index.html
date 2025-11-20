@@ -1,240 +1,75 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MouhtisClima</title>
-
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
-<!-- jsPDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-    body {
-        margin: 0;
-        font-family: 'Inter', sans-serif;
-        background: #f6f9fc;
-        color: #003366;
-    }
-
-    header {
-        background: #005bbb;
-        padding: 15px 25px;
-        color: white;
-        font-size: 24px;
-        font-weight: 600;
-    }
-
-    .container {
-        max-width: 900px;
-        margin: 30px auto;
-        background: white;
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0px 0px 10px rgba(0,0,0,0.08);
-    }
-
-    h2 {
-        border-left: 5px solid #005bbb;
-        padding-left: 10px;
-    }
-
-    input, select {
-        width: 100%;
-        margin-top: 7px;
-        margin-bottom: 15px;
-        padding: 10px;
-        border: 1px solid #cfd7df;
-        border-radius: 5px;
-    }
-
-    button {
-        background: #005bbb;
-        color: white;
-        border: none;
-        padding: 10px 18px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    button:hover {
-        background: #003f80;
-    }
-
-    .item-row {
-        padding: 10px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #e6e6e6;
-    }
-
-    .result-box {
-        background: #e9f3ff;
-        padding: 15px;
-        border-radius: 5px;
-        margin-top: 20px;
-    }
-
-</style>
+  <meta charset="UTF-8" />
+  <title>Mouhtis AC Planner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
+  <header class="app-header">
+    <div class="app-title">Mouhtis AC Planner</div>
+    <div class="app-subtitle">Σταθερό UI · Υπολογισμός και μελέτη κλιματισμού</div>
+  </header>
 
-<header>MouhtisClima</header>
+  <main class="app-main">
+    <section class="app-panel app-panel--left">
+      <div class="panel-block">
+        <h2>1. Κάτοψη</h2>
+        <p class="text-muted">
+          Ανέβασε κάτοψη (εικόνα), και σχεδίασε τα δωμάτια πάνω στον καμβά.
+        </p>
+        <input type="file" id="fileInput" accept="image/*" />
 
-<div class="container">
-    <h2>📌 Προσθήκη Υλικών / Εξοπλισμού</h2>
+        <div class="canvas-wrapper">
+          <canvas id="floorCanvas" width="1000" height="700"></canvas>
+        </div>
 
-    <label>Περιγραφή</label>
-    <input id="itemName" type="text" placeholder="π.χ. Κλιματιστικό 24.000 BTU">
+        <div class="toolbar">
+          <button id="btnDrawRoom" class="btn btn-primary">
+            Σχεδίαση δωματίου
+          </button>
+          <button id="btnPlaceAC" class="btn">
+            Τοποθέτηση κλιματιστικού
+          </button>
+          <button id="btnClear" class="btn btn-danger">
+            Καθαρισμός
+          </button>
+          <button id="btnCalculate" class="btn btn-accent">
+            Υπολογισμός BTU
+          </button>
+        </div>
+      </div>
+    </section>
 
-    <label>Κόστος (€)</label>
-    <input id="itemCost" type="number" placeholder="π.χ. 850">
+    <aside class="app-panel app-panel--right">
+      <div class="panel-block">
+        <h2>2. Δωμάτια</h2>
+        <p class="text-muted">
+          Τα δωμάτια που σχεδιάζεις εμφανίζονται εδώ. Συμπλήρωσε τα τετραγωνικά,
+          το ύψος, τα παράθυρα και τη μόνωση.
+        </p>
+        <div id="roomsList" class="rooms-list">
+          Δεν υπάρχουν δωμάτια ακόμη.
+        </div>
+      </div>
 
-    <button onclick="addItem()">Προσθήκη</button>
+      <div class="panel-block">
+        <h2>3. Αποτελέσματα & Προτάσεις</h2>
+        <div id="results" class="results-block">
+          Δεν έχει γίνει ακόμη υπολογισμός.
+        </div>
+        <div id="acSuggestions" class="results-block" style="margin-top:8px;">
+          Προτάσεις κλιματιστικών θα εμφανιστούν μετά τον υπολογισμό.
+        </div>
+      </div>
+    </aside>
+  </main>
 
-    <div id="itemsList"></div>
+  <footer class="app-footer">
+    Mouhtis Tools · Stable UI Template (Minimal Clean) · Παρακάτω αλλάζουμε μόνο το app.js
+  </footer>
 
-    <h2>🧰 Κόστος Εργασίας</h2>
-
-    <label>Κόστος Τεχνικού (€ / έργο)</label>
-    <input id="mainLabor" type="number" placeholder="π.χ. 300">
-
-    <label>Αριθμός βοηθών</label>
-    <input id="assistants" type="number" placeholder="π.χ. 1">
-
-    <label>Κόστος ανά βοηθό (€)</label>
-    <input id="assistCost" type="number" placeholder="π.χ. 80">
-
-    <button onclick="calculateTotal()">Υπολογισμός Συνολικού Κόστους</button>
-
-    <div id="results" class="result-box" style="display:none;"></div>
-
-    <button onclick="exportPDF()" style="margin-top:15px; background:#008800;">Εξαγωγή σε PDF</button>
-
-    <hr style="margin:40px 0;">
-
-    <h2>💶 Υπολογισμός με Βάση Μπάτζετ</h2>
-
-    <label>Μπάτζετ (€)</label>
-    <input id="budget" type="number" placeholder="π.χ. 2000">
-
-    <label>Τι χρειάζεσαι;</label>
-    <input id="needs" type="text" placeholder="π.χ. 2 κλιματιστικά 12.000 BTU">
-
-    <button onclick="budgetSuggestions()">Πρόταση Λύσης</button>
-
-    <div id="budgetResults" class="result-box" style="display:none;"></div>
-
-</div>
-
-<script>
-let items = [];
-
-function addItem() {
-    const name = document.getElementById('itemName').value;
-    const cost = Number(document.getElementById('itemCost').value);
-
-    if (!name || !cost) {
-        alert("Συμπλήρωσε περιγραφή και κόστος.");
-        return;
-    }
-
-    items.push({ name, cost });
-    renderItems();
-}
-
-function renderItems() {
-    const list = document.getElementById('itemsList');
-    list.innerHTML = "";
-
-    items.forEach((item, i) => {
-        list.innerHTML += `
-            <div class="item-row">
-                <strong>${item.name}</strong> – ${item.cost} €
-                <button style="float:right; background:#bb0000;" onclick="removeItem(${i})">X</button>
-            </div>`;
-    });
-}
-
-function removeItem(index) {
-    items.splice(index, 1);
-    renderItems();
-}
-
-function calculateTotal() {
-    let equipmentCost = items.reduce((sum, x) => sum + x.cost, 0);
-    let labor = Number(document.getElementById('mainLabor').value) || 0;
-    let assistants = Number(document.getElementById('assistants').value) || 0;
-    let assistCost = Number(document.getElementById('assistCost').value) || 0;
-
-    let laborTotal = labor + assistants * assistCost;
-    let total = equipmentCost + laborTotal;
-
-    let suggestions = "";
-    if (equipmentCost > 1500) {
-        suggestions += "• Εξέτασε εναλλακτικούς προμηθευτές για μείωση κόστους χωρίς απώλεια ποιότητας.\n";
-    }
-    if (assistants > 2) {
-        suggestions += "• Ίσως μειωθεί ο αριθμός βοηθών αν δεν απαιτείται.\n";
-    }
-    if (!suggestions) suggestions = "Δεν απαιτούνται ιδιαίτερες παρεμβάσεις.";
-
-    const results = document.getElementById('results');
-    results.style.display = "block";
-    results.innerHTML = `
-        <h3>🔍 Αποτελέσματα</h3>
-        <p><strong>Κόστος εξοπλισμού:</strong> ${equipmentCost} €</p>
-        <p><strong>Κόστος εργασίας:</strong> ${laborTotal} €</p>
-        <p><strong>Συνολικό κόστος:</strong> <span style="font-size:20px;color:#005bbb;font-weight:700;">${total} €</span></p>
-        <h4>Προτάσεις Εξοικονόμησης</h4>
-        <pre>${suggestions}</pre>
-    `;
-}
-
-function budgetSuggestions() {
-    const budget = Number(document.getElementById('budget').value);
-    const needs = document.getElementById('needs').value;
-
-    if (!budget || !needs) {
-        alert("Συμπλήρωσε μπάτζετ και ανάγκη.");
-        return;
-    }
-
-    let suggestion = "";
-    if (budget < 800) {
-        suggestion = "Μικρό budget – προτείνονται λύσεις inverter μικρότερης ισχύος.";
-    } else if (budget < 1500) {
-        suggestion = "Μπορείς να καλύψεις βασικές ανάγκες με 1 σύστημα mid-range.";
-    } else {
-        suggestion = "Το budget επαρκεί για ποιοτικά συστήματα ή πολλαπλές μονάδες.";
-    }
-
-    const res = document.getElementById('budgetResults');
-    res.style.display = "block";
-    res.innerHTML = `
-        <h3>🔧 Ανάλυση Μπάτζετ</h3>
-        <p><strong>Μπάτζετ:</strong> ${budget} €</p>
-        <p><strong>Ανάγκη:</strong> ${needs}</p>
-        <h4>Πρόταση:</h4>
-        <p>${suggestion}</p>
-    `;
-}
-
-function exportPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    const results = document.getElementById("results").innerText || "Δεν υπάρχουν αποτελέσματα.";
-
-    doc.text("MouhtisClima - Αποτελέσματα Μελέτης", 10, 10);
-    doc.text(results, 10, 20);
-
-    doc.save("MouhtisClima_Report.pdf");
-}
-</script>
-
+  <script src="app.js"></script>
 </body>
 </html>
