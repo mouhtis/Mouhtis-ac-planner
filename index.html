@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="el">
 <head>
@@ -27,7 +28,7 @@
   .left{flex:1;background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.05)}
   .right{width:360px;min-width:260px;background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.05);height:78vh;overflow:auto}
   #canvasWrap{border:1px dashed #e6eefc;border-radius:8px;overflow:auto;background:#fff;padding:8px}
-  canvas{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff}
+  canvas{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff;touch-action:none;}
   .label{font-size:12px;color:var(--muted);margin-top:8px}
   .rooms-table{width:100%;border-collapse:collapse;margin-top:8px}
   .rooms-table th,.rooms-table td{padding:6px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:left}
@@ -186,9 +187,10 @@ document.getElementById('file').addEventListener('change', e=>{
   reader.readAsDataURL(f);
 });
 
-// mouse events
-cv.addEventListener('mousemove', e=>{
-  last = screenToCanvas(e);
+// ---------- POINTER EVENTS (PC + ΚΙΝΗΤΟ) ----------
+cv.addEventListener('pointermove', e=>{
+  const p = screenToCanvas(e);
+  last = p;
   if(drawing && mode==='draw' && start){
     drawAll();
     ctx.save(); ctx.strokeStyle='#16a34a'; ctx.setLineDash([6,4]);
@@ -196,11 +198,27 @@ cv.addEventListener('mousemove', e=>{
     ctx.restore();
   }
 });
-cv.addEventListener('mousedown', e=>{
-  if(mode==='draw'){ drawing = true; start = screenToCanvas(e); }
-  else if(mode==='place'){ const p = screenToCanvas(e); let idx=null; rooms.forEach((r,i)=>{ if(p.x>=r.x && p.y>=r.y && p.x<=r.x+r.w && p.y<=r.y+r.h) idx=i; }); acMarkers.push({x:p.x,y:p.y,roomIndex:idx}); drawAll(); renderRoomsList(); }
+
+cv.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  if(mode==='draw'){
+    drawing = true;
+    start = screenToCanvas(e);
+  }
+  else if(mode==='place'){
+    const p = screenToCanvas(e);
+    let idx=null;
+    rooms.forEach((r,i)=>{
+      if(p.x>=r.x && p.y>=r.y && p.x<=r.x+r.w && p.y<=r.y+r.h) idx=i;
+    });
+    acMarkers.push({x:p.x,y:p.y,roomIndex:idx});
+    drawAll();
+    renderRoomsList();
+  }
 });
-cv.addEventListener('mouseup', e=>{
+
+cv.addEventListener('pointerup', e=>{
+  e.preventDefault();
   if(mode==='draw' && drawing && start){
     const p = screenToCanvas(e);
     const nx = Math.min(start.x,p.x), ny = Math.min(start.y,p.y);
@@ -254,8 +272,7 @@ function renderRoomsList(){
 
 // BTU calculator per room — advanced
 function calcRoomBTU(r){
-  // base = area * BTU_PER_M2
-  const area = parseFloat(r.area)|| (Math.round((r.w*r.h)/100) || 0); // if user didn't supply area, we attempt pixel->m2? Note: keep manual for accuracy
+  const area = parseFloat(r.area)|| (Math.round((r.w*r.h)/100) || 0);
   const base = area * BTU_PER_M2;
   const heightFactor = (parseFloat(r.height)||2.5) / 2.5;
   const deltaT = 14;
@@ -273,7 +290,6 @@ function calculateAll(){
     const res = calcRoomBTU(r);
     return {index:i, name: r.name || ('Room '+(i+1)), btu: res.totalBTU, area: r.area || '?', breakdown: res.breakdown};
   });
-  // display result table in results
   let html = '<table class="rooms-table"><tr><th>Room</th><th>Area</th><th>BTU</th><th>Suggested unit</th></tr>';
   arr.forEach(it=>{
     let sugg = it.btu<=7000 ? '7,000' : it.btu<=10000 ? '9,000' : it.btu<=14000 ? '12,000' : it.btu<=20000 ? '18,000' : '>24,000';
@@ -292,13 +308,11 @@ function autoPlace2(){
   acMarkers = [];
   top.forEach(t=>{
     const r = rooms[t.index];
-    // place near upper center but offset to avoid door area (approx.)
     const px = r.x + r.w*0.5, py = r.y + r.h*0.22;
     acMarkers.push({x:px,y:py,roomIndex:t.index});
   });
   drawAll();
   renderRoomsList();
-  // show message
   const msg = `<h4>Auto placement</h4><ol>${top.map(t=>'<li>'+t.name+' — '+t.btu+' BTU</li>').join('')}</ol>`;
   document.getElementById('results').innerHTML += msg;
 }
@@ -310,7 +324,6 @@ function showRecommendations(arr){
   const picks = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
   let recHtml = '';
   picks.forEach(p=>{
-    // choose cheapest model meeting >= suggested capacity
     const desired = p.btu<=10000?9000:12000;
     const candidates = MODELS.filter(m=>m.btu >= desired && (!needDehum || m.dehum)).sort((a,b)=>a.price-b.price);
     const choice = candidates.find(m=>m.price <= budget) || candidates[0];
@@ -321,17 +334,6 @@ function showRecommendations(arr){
     }
   });
   document.getElementById('modelsList').innerHTML = recHtml;
-}
-
-// show recommendations wrapper
-function showRecommendationsArr(){
-  const arr = calculateAll();
-  if(arr.length) showRecommendations(arr);
-}
-
-// helper: recs after calculate
-function showRecommendations(arr){
-  showRecommendationsArr(); // reuse
 }
 
 // export PDF (canvas + results)
@@ -363,10 +365,8 @@ function renderModelsList(){
 
 // Help button
 document.getElementById('helpBtn').addEventListener('click', ()=> {
-  alert('Help:\\n1) Upload plan image (JPG/PNG)\\n2) Draw rooms (Draw room) by dragging\\n3) Fill room params on right\\n4) Calculate -> Auto place 2 AC -> Export PDF');
+  alert('Help:\n1) Upload plan image (JPG/PNG)\n2) Draw rooms (Draw room) by dragging\n3) Fill room params on right\n4) Calculate -> Auto place 2 AC -> Export PDF');
 });
-
 </script>
 </body>
 </html>
-
