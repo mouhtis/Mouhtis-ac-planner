@@ -1,300 +1,239 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-<meta charset="UTF-8">
-<title>Mouhtis AC Planner</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MouhtisClima</title>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{
-font-family: Arial, sans-serif;
-margin:0;
-background:#f5f5f5;
-}
-header{
-background:#1f2937;
-color:#fff;
-padding:15px;
-text-align:center;
-font-size:22px;
-font-weight:bold;
-}
-main{
-max-width:1100px;
-margin:0 auto;
-padding:20px;
-}
-section{
-background:#fff;
-padding:15px;
-margin-bottom:20px;
-border-radius:8px;
-box-shadow:0 2px 4px rgba(0,0,0,0.1);
-}
-h2{
-font-size:18px;
-margin-top:0;
-}
-input[type="file"]{
-margin:10px 0;
-}
-canvas{
-display:block;
-max-width:100%;
-border:1px solid #ccc;
-border-radius:6px;
-background:#fff;
-touch-action:none; /* ΣΗΜΑΝΤΙΚΟ ΓΙΑ ΚΙΝΗΤΟ */
-}
-button{
-padding:10px 14px;
-border:none;
-border-radius:6px;
-margin-right:10px;
-cursor:pointer;
-font-weight:bold;
-margin-top:10px;
-}
-.drawbtn{background:#16a34a;color:#fff;}
-.placebtn{background:#2563eb;color:#fff;}
-.clearbtn{background:#dc2626;color:#fff;}
+    body {
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+        background: #f6f9fc;
+        color: #003366;
+    }
+
+    header {
+        background: #005bbb;
+        padding: 15px 25px;
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 30px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+        border-left: 5px solid #005bbb;
+        padding-left: 10px;
+    }
+
+    input, select {
+        width: 100%;
+        margin-top: 7px;
+        margin-bottom: 15px;
+        padding: 10px;
+        border: 1px solid #cfd7df;
+        border-radius: 5px;
+    }
+
+    button {
+        background: #005bbb;
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    button:hover {
+        background: #003f80;
+    }
+
+    .item-row {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #e6e6e6;
+    }
+
+    .result-box {
+        background: #e9f3ff;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+
 </style>
 </head>
 
 <body>
-<header>Mouhtis AC Planner</header>
 
-<main>
+<header>MouhtisClima</header>
 
-<section>
-<h2>1. Ανέβασμα Κάτοψης</h2>
-<input type="file" id="upload">
-<canvas id="cv" width="1200" height="800"></canvas>
-<button class="drawbtn" id="drawRoomBtn">Σχεδίαση Δωματίου</button>
-<button class="placebtn" id="placeACBtn">Τοποθέτηση Κλιματιστικού</button>
-<button class="clearbtn" id="clearBtn">Καθαρισμός</button>
-</section>
+<div class="container">
+    <h2>📌 Προσθήκη Υλικών / Εξοπλισμού</h2>
 
-<section>
-<h2>2. Λίστα Δωματίων</h2>
-<div id="roomsList">Δεν υπάρχουν δωμάτια ακόμα.</div>
-</section>
+    <label>Περιγραφή</label>
+    <input id="itemName" type="text" placeholder="π.χ. Κλιματιστικό 24.000 BTU">
 
-<section>
-<h2>3. Προτάσεις Κλιματιστικών</h2>
-<div id="acResults">Δεν έχουν οριστεί δωμάτια.</div>
-</section>
+    <label>Κόστος (€)</label>
+    <input id="itemCost" type="number" placeholder="π.χ. 850">
 
-</main>
+    <button onclick="addItem()">Προσθήκη</button>
+
+    <div id="itemsList"></div>
+
+    <h2>🧰 Κόστος Εργασίας</h2>
+
+    <label>Κόστος Τεχνικού (€ / έργο)</label>
+    <input id="mainLabor" type="number" placeholder="π.χ. 300">
+
+    <label>Αριθμός βοηθών</label>
+    <input id="assistants" type="number" placeholder="π.χ. 1">
+
+    <label>Κόστος ανά βοηθό (€)</label>
+    <input id="assistCost" type="number" placeholder="π.χ. 80">
+
+    <button onclick="calculateTotal()">Υπολογισμός Συνολικού Κόστους</button>
+
+    <div id="results" class="result-box" style="display:none;"></div>
+
+    <button onclick="exportPDF()" style="margin-top:15px; background:#008800;">Εξαγωγή σε PDF</button>
+
+    <hr style="margin:40px 0;">
+
+    <h2>💶 Υπολογισμός με Βάση Μπάτζετ</h2>
+
+    <label>Μπάτζετ (€)</label>
+    <input id="budget" type="number" placeholder="π.χ. 2000">
+
+    <label>Τι χρειάζεσαι;</label>
+    <input id="needs" type="text" placeholder="π.χ. 2 κλιματιστικά 12.000 BTU">
+
+    <button onclick="budgetSuggestions()">Πρόταση Λύσης</button>
+
+    <div id="budgetResults" class="result-box" style="display:none;"></div>
+
+</div>
 
 <script>
-const upload = document.getElementById("upload");
-const cv = document.getElementById("cv");
-const ctx = cv.getContext("2d");
+let items = [];
 
-let img = null;
-let rooms = [];
-let acMarkers = [];
-let mode = null;
-let drawing = false;
-let start = null;
-let last = null;
+function addItem() {
+    const name = document.getElementById('itemName').value;
+    const cost = Number(document.getElementById('itemCost').value);
 
-// ----------------------------
-// Φόρτωμα εικόνας κάτοψης
-// ----------------------------
-upload.addEventListener("change", e=>{
-const file = e.target.files[0];
-if(!file) return;
-const r = new FileReader();
-r.onload = ev=>{
-img = new Image();
-img.onload = ()=> drawAll();
-img.src = ev.target.result;
-};
-r.readAsDataURL(file);
-});
+    if (!name || !cost) {
+        alert("Συμπλήρωσε περιγραφή και κόστος.");
+        return;
+    }
 
-// ----------------------------
-// Σχεδίαση όλων
-// ----------------------------
-function drawAll(){
-ctx.clearRect(0,0,cv.width,cv.height);
-if(img) ctx.drawImage(img,0,0,cv.width,cv.height);
-
-// δωμάτια
-rooms.forEach(r=>{
-ctx.save();
-ctx.strokeStyle="#16a34a";
-ctx.lineWidth=2;
-ctx.strokeRect(r.x,r.y,r.w,r.h);
-ctx.restore();
-});
-
-// markers AC
-acMarkers.forEach(m=>{
-ctx.save();
-ctx.fillStyle="#2563eb";
-ctx.beginPath();
-ctx.arc(m.x,m.y,8,0,Math.PI*2);
-ctx.fill();
-ctx.restore();
-});
+    items.push({ name, cost });
+    renderItems();
 }
 
-// ----------------------------
-// Κουμπιά λειτουργιών
-// ----------------------------
-document.getElementById("drawRoomBtn").onclick = ()=>{
-mode = "draw";
-};
-document.getElementById("placeACBtn").onclick = ()=>{
-mode = "place";
-};
-document.getElementById("clearBtn").onclick = ()=>{
-rooms=[];
-acMarkers=[];
-drawAll();
-renderRoomsList();
-renderACResults();
-};
+function renderItems() {
+    const list = document.getElementById('itemsList');
+    list.innerHTML = "";
 
-// ----------------------------
-// Pointer event υποστήριξη (κινητό + PC)
-// ----------------------------
-function pointerToCanvas(e){
-const rect = cv.getBoundingClientRect();
-const clientX = e.clientX ?? (e.touches?.[0]?.clientX);
-const clientY = e.clientY ?? (e.touches?.[0]?.clientY);
-return {
-x: (clientX - rect.left) * (cv.width / rect.width),
-y: (clientY - rect.top) * (cv.height / rect.height)
-};
+    items.forEach((item, i) => {
+        list.innerHTML += `
+            <div class="item-row">
+                <strong>${item.name}</strong> – ${item.cost} €
+                <button style="float:right; background:#bb0000;" onclick="removeItem(${i})">X</button>
+            </div>`;
+    });
 }
 
-cv.addEventListener("pointerdown", e=>{
-e.preventDefault();
-const p = pointerToCanvas(e);
-last = p;
-
-if(mode === "draw"){
-drawing = true;
-start = p;
-}
-else if(mode === "place"){
-let idx=null;
-rooms.forEach((r,i)=>{
-if(p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h) idx = i;
-});
-acMarkers.push({x:p.x,y:p.y,roomIndex:idx});
-drawAll();
-renderACResults();
-}
-});
-
-cv.addEventListener("pointermove", e=>{
-const p = pointerToCanvas(e);
-last = p;
-
-if(mode==="draw" && drawing && start){
-drawAll();
-ctx.save();
-ctx.strokeStyle="#16a34a";
-ctx.setLineDash([6,4]);
-ctx.strokeRect(start.x,start.y,p.x-start.x,p.y-start.y);
-ctx.restore();
-}
-});
-
-cv.addEventListener("pointerup", e=>{
-e.preventDefault();
-const p = pointerToCanvas(e);
-
-if(mode==="draw" && drawing && start){
-const nx = Math.min(start.x,p.x);
-const ny = Math.min(start.y,p.y);
-const nw = Math.abs(p.x-start.x);
-const nh = Math.abs(p.y-start.y);
-
-if(nw>20 && nh>20){
-rooms.push({
-x:nx, y:ny, w:nw, h:nh,
-name:"",
-area:"",
-height:2.7,
-windows:0,
-ins:1.0
-});
-renderRoomsList();
-}
-start=null;
-drawing=false;
-drawAll();
-}
-});
-
-// ----------------------------
-// Render Rooms List
-// ----------------------------
-function renderRoomsList(){
-const div = document.getElementById("roomsList");
-if(rooms.length===0){ div.innerHTML="Δεν υπάρχουν δωμάτια."; return; }
-
-div.innerHTML = rooms.map((r,i)=>`
-<div style="margin-bottom:10px;padding:10px;border:1px solid #ddd;border-radius:6px;">
-<strong>Δωμάτιο ${i+1}</strong><br>
-Επιφάνεια (m²): <input type="number" value="${r.area}" onchange="updateRoomArea(${i},this.value)">
-Ύψος: <input type="number" value="${r.height}" step="0.1" onchange="updateRoomHeight(${i},this.value)">
-Παράθυρα: <input type="number" value="${r.windows}" onchange="updateRoomWindows(${i},this.value)">
-Μόνωση (1=καλή, 2=μέτρια, 3=κακή):
-<input type="number" value="${r.ins}" onchange="updateRoomIns(${i},this.value)">
-</div>
-`).join("");
+function removeItem(index) {
+    items.splice(index, 1);
+    renderItems();
 }
 
-function updateRoomArea(i,v){ rooms[i].area=parseFloat(v); renderACResults(); }
-function updateRoomHeight(i,v){ rooms[i].height=parseFloat(v); renderACResults(); }
-function updateRoomWindows(i,v){ rooms[i].windows=parseInt(v); renderACResults(); }
-function updateRoomIns(i,v){ rooms[i].ins=parseFloat(v); renderACResults(); }
+function calculateTotal() {
+    let equipmentCost = items.reduce((sum, x) => sum + x.cost, 0);
+    let labor = Number(document.getElementById('mainLabor').value) || 0;
+    let assistants = Number(document.getElementById('assistants').value) || 0;
+    let assistCost = Number(document.getElementById('assistCost').value) || 0;
 
-// ----------------------------
-// Υπολογισμός BTU
-// ----------------------------
-function calculateBTU(r){
-if(!r.area) return 0;
-let base = r.area * 500;
-base += r.windows * 600;
-base *= r.ins;
-return Math.round(base);
+    let laborTotal = labor + assistants * assistCost;
+    let total = equipmentCost + laborTotal;
+
+    let suggestions = "";
+    if (equipmentCost > 1500) {
+        suggestions += "• Εξέτασε εναλλακτικούς προμηθευτές για μείωση κόστους χωρίς απώλεια ποιότητας.\n";
+    }
+    if (assistants > 2) {
+        suggestions += "• Ίσως μειωθεί ο αριθμός βοηθών αν δεν απαιτείται.\n";
+    }
+    if (!suggestions) suggestions = "Δεν απαιτούνται ιδιαίτερες παρεμβάσεις.";
+
+    const results = document.getElementById('results');
+    results.style.display = "block";
+    results.innerHTML = `
+        <h3>🔍 Αποτελέσματα</h3>
+        <p><strong>Κόστος εξοπλισμού:</strong> ${equipmentCost} €</p>
+        <p><strong>Κόστος εργασίας:</strong> ${laborTotal} €</p>
+        <p><strong>Συνολικό κόστος:</strong> <span style="font-size:20px;color:#005bbb;font-weight:700;">${total} €</span></p>
+        <h4>Προτάσεις Εξοικονόμησης</h4>
+        <pre>${suggestions}</pre>
+    `;
 }
 
-// ----------------------------
-// Προτάσεις κλιματιστικών
-// ----------------------------
-function renderACResults(){
-const div = document.getElementById("acResults");
-if(rooms.length===0){ div.innerHTML="Δεν υπάρχουν δωμάτια."; return; }
+function budgetSuggestions() {
+    const budget = Number(document.getElementById('budget').value);
+    const needs = document.getElementById('needs').value;
 
-const results = rooms.map((r,i)=>{
-const btu = calculateBTU(r);
+    if (!budget || !needs) {
+        alert("Συμπλήρωσε μπάτζετ και ανάγκη.");
+        return;
+    }
 
-return `
-<div style="margin-bottom:10px;padding:12px;border:1px solid #bbb;border-radius:6px;">
-<strong>Δωμάτιο ${i+1}</strong><br>
-Υπολογισμένα BTU: <strong>${btu}</strong><br>
-Προτεινόμενα μοντέλα:
-<ul>
-<li><a target="_blank" href="https://www.skroutz.gr/search?key=9000+btu">9.000 BTU (Σύνδεσμος Skroutz)</a></li>
-<li><a target="_blank" href="https://www.skroutz.gr/search?key=12000+btu">12.000 BTU (Σύνδεσμος Skroutz)</a></li>
-<li><a target="_blank" href="https://www.skroutz.gr/search?key=18000+btu">18.000 BTU (Σύνδεσμος Skroutz)</a></li>
-</ul>
-</div>
-`;
-});
+    let suggestion = "";
+    if (budget < 800) {
+        suggestion = "Μικρό budget – προτείνονται λύσεις inverter μικρότερης ισχύος.";
+    } else if (budget < 1500) {
+        suggestion = "Μπορείς να καλύψεις βασικές ανάγκες με 1 σύστημα mid-range.";
+    } else {
+        suggestion = "Το budget επαρκεί για ποιοτικά συστήματα ή πολλαπλές μονάδες.";
+    }
 
-div.innerHTML = results.join("");
+    const res = document.getElementById('budgetResults');
+    res.style.display = "block";
+    res.innerHTML = `
+        <h3>🔧 Ανάλυση Μπάτζετ</h3>
+        <p><strong>Μπάτζετ:</strong> ${budget} €</p>
+        <p><strong>Ανάγκη:</strong> ${needs}</p>
+        <h4>Πρόταση:</h4>
+        <p>${suggestion}</p>
+    `;
 }
 
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const results = document.getElementById("results").innerText || "Δεν υπάρχουν αποτελέσματα.";
+
+    doc.text("MouhtisClima - Αποτελέσματα Μελέτης", 10, 10);
+    doc.text(results, 10, 20);
+
+    doc.save("MouhtisClima_Report.pdf");
+}
 </script>
 
 </body>
