@@ -26,7 +26,7 @@
   .container{display:flex;gap:16px;padding:16px;max-width:1200px;margin:12px auto}
   .left{flex:1;background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.05)}
 
-  /* 🔵 ΜΟΝΑΔΙΚΗ ΑΛΛΑΓΗ — Το δεξί πλαίσιο */
+  /* RIGHT PANEL – FIXES */
   .right{
     width:100%;
     max-width:420px;
@@ -51,7 +51,6 @@
   .chip{background:#f1f5f9;padding:4px 8px;border-radius:999px;font-size:12px}
   footer{padding:10px;text-align:center;color:var(--muted);font-size:13px}
 
-  /* 📱 Για κινητό */
   @media(max-width:900px){
     .container{flex-direction:column}
     .right{
@@ -87,7 +86,7 @@
     </div>
 
     <div id="canvasWrap"><canvas id="cv" width="1000" height="700"></canvas></div>
-    <div style="margin-top:8px" class="small">Tips: μετά το upload, πάτα «Draw room» και σύρε για να δημιουργήσεις δωμάτια. Στη δεξιά στήλη συμπλήρωσε τις παραμέτρους.</div>
+    <div style="margin-top:8px" class="small">Tips: μετά το upload, πάτα «Draw room» και σύρε για να δημιουργήσεις δωμάτια.</div>
   </div>
 
   <aside class="right">
@@ -116,10 +115,376 @@
 <footer>Prototype by Mouhtis — tell me if you want server-side storage or automatic room detection.</footer>
 
 <script>
-/* 🔵 Κανένα JS δεν άλλαξε — ο κώδικας μένει ανέπαφος */
-/* -------------------------------------------------- */
-/* ΟΛΟΣ ο JavaScript κώδικας εδώ παραμένει όπως ήταν  */
-/* -------------------------------------------------- */
+/* --------------------------------------------- */
+/* STATE                                          */
+/* --------------------------------------------- */
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+cv.style.touchAction = "none"; // iPhone fix for drag/touch
+
+let bgImg = null;
+let mode = 'select';
+let drawing = false, start=null;
+let last = {x:0,y:0};
+let rooms = [];
+let acMarkers = [];
+
+const BTU_PER_M2 = 341.2;
+const W_TO_BTU = 3.412;
+
+/* --------------------------------------------- */
+/* RESIZE + DRAW                                  */
+/* --------------------------------------------- */
+
+function resizeCanvasTo(w,h){
+  cv.width = w;
+  cv.height = h;
+  drawAll();
+}
+
+function screenToCanvas(evt){
+  const r = cv.getBoundingClientRect();
+  const x = (evt.clientX - r.left) * (cv.width / r.width);
+  const y = (evt.clientY - r.top) * (cv.height / r.height);
+  return {x,y};
+}
+
+function drawAll(){
+  ctx.clearRect(0,0,cv.width,cv.height); // iPhone safe reset
+
+  if(bgImg) {
+    ctx.drawImage(bgImg,0,0,cv.width,cv.height);
+  } else {
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,cv.width,cv.height);
+  }
+
+  // rooms
+  rooms.forEach((r,i)=>{
+    ctx.save();
+    ctx.strokeStyle = '#0b74de';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle = 'rgba(11,116,222,0.06)';
+    ctx.fillRect(r.x,r.y,r.w,r.h);
+    ctx.fillStyle = '#0b2540';
+    ctx.font = '14px Inter, Arial';
+    const label = (r.name && r.name.trim())? r.name : 'Room '+(i+1);
+    ctx.fillText(label + (r.area? ' ('+r.area+' m²)':''), r.x+8, r.y+18);
+    ctx.restore();
+  });
+
+  // AC markers
+  acMarkers.forEach(m=>{
+    ctx.beginPath();
+    ctx.fillStyle = '#000';
+    ctx.arc(m.x,m.y,9,0,Math.PI*2);
+    ctx.fill();
+    ctx.closePath();
+    ctx.fillStyle='white';
+    ctx.font='10px Inter';
+    ctx.fillText('AC', m.x-10, m.y+3);
+  });
+}
+
+/* --------------------------------------------- */
+/* IMAGE UPLOAD + iPHONE FIX                      */
+/* --------------------------------------------- */
+
+document.getElementById('file').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+
+      let iw = img.width,
+          ih = img.height;
+
+      const maxW = 1000, maxH = 700;
+      const ratio = Math.min(maxW/iw, maxH/ih, 1);
+
+      const w = Math.round(iw*ratio),
+            h = Math.round(ih*ratio);
+
+      bgImg = img;
+
+      // iPhone: delay resize to ensure proper draw
+      resizeCanvasTo(w,h);
+      setTimeout(drawAll, 50);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+/* --------------------------------------------- */
+/* MOUSE + TOUCH EVENTS                           */
+/* --------------------------------------------- */
+
+cv.addEventListener('mousemove', e=>{
+  last = screenToCanvas(e);
+
+  if(drawing && mode==='draw' && start){
+    drawAll();
+    ctx.save();
+    ctx.strokeStyle='#16a34a';
+    ctx.setLineDash([6,4]);
+    ctx.strokeRect(start.x, start.y, last.x - start.x, last.y - start.y);
+    ctx.restore();
+  }
+});
+
+cv.addEventListener('mousedown', e=>{
+  if(mode==='draw'){
+    drawing = true;
+    start = screenToCanvas(e);
+  }
+  else if(mode==='place'){
+    const p = screenToCanvas(e);
+    let idx=null;
+    rooms.forEach((r,i)=>{
+      if(p.x>=r.x && p.y>=r.y && p.x<=r.x+r.w && p.y<=r.y+r.h) idx=i;
+    });
+    acMarkers.push({x:p.x,y:p.y,roomIndex:idx});
+    drawAll();
+    renderRoomsList();
+  }
+});
+
+cv.addEventListener('mouseup', e=>{
+  if(mode==='draw' && drawing && start){
+    const p = screenToCanvas(e);
+    const nx = Math.min(start.x,p.x),
+          ny = Math.min(start.y,p.y);
+    const nw = Math.abs(p.x - start.x),
+          nh = Math.abs(p.y - start.y);
+
+    if(nw>20 && nh>20){
+      rooms.push({
+        x:nx,y:ny,w:nw,h:nh,
+        name:'',
+        area:'',
+        height:2.7,
+        windows:0,
+        win_u:2.8,
+        occupants:1,
+        ins:1.0
+      });
+      renderRoomsList();
+    }
+
+    start=null;
+    drawing=false;
+    drawAll();
+  }
+});
+
+/* --------------------------------------------- */
+/* RENDER ROOMS LIST                             */
+/* --------------------------------------------- */
+
+function renderRoomsList(){
+  const div = document.getElementById('roomsList');
+
+  if(rooms.length===0){
+    div.innerHTML = '<div class="small">No rooms — draw on the plan first.</div>';
+    return;
+  }
+
+  let html = '<table class="rooms-table"><tr><th>#</th><th>Name</th><th>m²</th><th>h</th><th>windows</th><th>Uwin</th><th>occ</th><th>ins</th><th></th></tr>';
+
+  rooms.forEach((r,i)=>{
+    html += `
+    <tr>
+      <td>${i+1}</td>
+      <td><input data-i="${i}" class="r_name" value="${r.name||''}" style="width:90px"/></td>
+      <td><input data-i="${i}" class="r_area" value="${r.area||''}" style="width:60px"/></td>
+      <td><input data-i="${i}" class="r_height" value="${r.height||2.7}" style="width:50px"/></td>
+      <td><input data-i="${i}" class="r_win" value="${r.windows||0}" style="width:60px"/></td>
+      <td><input data-i="${i}" class="r_winu" value="${r.win_u||2.8}" style="width:60px"/></td>
+      <td><input data-i="${i}" class="r_occ" value="${r.occupants||1}" style="width:45px"/></td>
+      <td><input data-i="${i}" class="r_ins" value="${r.ins||1.0}" style="width:50px"/></td>
+      <td><button data-i="${i}" class="delRoom" style="padding:6px">Del</button></td>
+    </tr>
+    `;
+  });
+
+  html += '</table>';
+  div.innerHTML = html;
+
+  // attach listeners
+  document.querySelectorAll('.r_name').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].name = el.value
+  );
+
+  document.querySelectorAll('.r_area').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].area = parseFloat(el.value)||''
+  );
+
+  document.querySelectorAll('.r_height').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].height = parseFloat(el.value)||2.7
+  );
+
+  document.querySelectorAll('.r_win').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].windows = parseFloat(el.value)||0
+  );
+
+  document.querySelectorAll('.r_winu').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].win_u = parseFloat(el.value)||2.8
+  );
+
+  document.querySelectorAll('.r_occ').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].occupants = parseInt(el.value)||1
+  );
+
+  document.querySelectorAll('.r_ins').forEach(el =>
+    el.onchange = ()=> rooms[el.dataset.i].ins = parseFloat(el.value)||1.0
+  );
+
+  document.querySelectorAll('.delRoom').forEach(btn =>
+    btn.onclick = ()=>{
+      const i = Number(btn.dataset.i);
+      rooms.splice(i,1);
+
+      acMarkers.forEach(m=>{
+        if(m.roomIndex === i) m.roomIndex = null;
+        else if(m.roomIndex > i) m.roomIndex--;
+      });
+
+      renderRoomsList();
+      drawAll();
+    }
+  );
+}
+
+/* --------------------------------------------- */
+/* BTU CALCULATION                               */
+/* --------------------------------------------- */
+
+function calcRoomBTU(r){
+  const area = parseFloat(r.area)||0;
+
+  const base = area * BTU_PER_M2;
+  const heightFactor = (parseFloat(r.height)||2.5) / 2.5;
+  const deltaT = 14;
+
+  const winCond = (parseFloat(r.windows)||0) * (parseFloat(r.win_u)||2.8) * deltaT;
+  const winBTU = Math.round(winCond * W_TO_BTU);
+
+  const pplBTU = Math.max(0, (parseInt(r.occupants)||1)-2) * 600;
+
+  const total = Math.round(base * heightFactor) + winBTU + pplBTU;
+
+  return Math.round(total * (parseFloat(r.ins)||1.0));
+}
+
+function calculateAll(){
+  if(rooms.length===0){
+    alert('Draw at least one room first');
+    return [];
+  }
+
+  const results = rooms.map((r,i)=>{
+    const btu = calcRoomBTU(r);
+    return {
+      index:i,
+      name:r.name||('Room '+(i+1)),
+      area:r.area||'?'
+      ,btu
+    };
+  });
+
+  let html = '<table class="rooms-table"><tr><th>Room</th><th>Area</th><th>BTU</th><th>Suggested</th></tr>';
+
+  results.forEach(r=>{
+    let sugg =
+      r.btu<=7000 ? '7,000' :
+      r.btu<=10000 ? '9,000' :
+      r.btu<=14000 ? '12,000' :
+      r.btu<=20000 ? '18,000' : '24,000+';
+
+    html += `<tr>
+      <td>${r.name}</td>
+      <td>${r.area}</td>
+      <td>${r.btu}</td>
+      <td>${sugg}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+
+  document.getElementById('results').innerHTML = html;
+
+  return results;
+}
+
+/* --------------------------------------------- */
+/* AUTO PLACE 2 ACs                              */
+/* --------------------------------------------- */
+
+function autoPlace2(){
+  const arr = calculateAll();
+  if(!arr || arr.length===0) return;
+
+  const top = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
+
+  acMarkers = [];
+
+  top.forEach(t=>{
+    const r = rooms[t.index];
+    const px = r.x + r.w*0.5;
+    const py = r.y + r.h*0.22;
+    acMarkers.push({x:px,y:py,roomIndex:t.index});
+  });
+
+  drawAll();
+  renderRoomsList();
+}
+
+/* --------------------------------------------- */
+/* EXPORT PDF                                    */
+/* --------------------------------------------- */
+
+document.getElementById('exportPdf').addEventListener('click', async ()=>{
+  const canvasWrap = document.getElementById('canvasWrap');
+  const shot = await html2canvas(canvasWrap,{scale:1.5});
+  const img = shot.toDataURL('image/png');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'px', format:[shot.width+20, shot.height+300]});
+  doc.addImage(img,'PNG',10,10, shot.width, shot.height);
+  doc.save('mouhtis_ac_report.pdf');
+});
+
+/* --------------------------------------------- */
+/* UI BUTTONS                                    */
+/* --------------------------------------------- */
+
+document.getElementById('drawRoom').onclick = ()=> mode='draw';
+document.getElementById('placeAC').onclick = ()=> mode='place';
+document.getElementById('clearAll').onclick = ()=>{
+  if(confirm('Clear all?')){
+    rooms=[];
+    acMarkers=[];
+    renderRoomsList();
+    drawAll();
+  }
+};
+
+document.getElementById('calc').onclick = ()=> calculateAll();
+
+document.getElementById('helpBtn').onclick = ()=>{
+  alert('Help:\n1) Upload plan\n2) Draw rooms\n3) Fill parameters\n4) Calculate');
+};
+
+/* --------------------------------------------- */
+/* INITIAL DRAW                                  */
+/* --------------------------------------------- */
+
+drawAll();
 
 </script>
 </body>
