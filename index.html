@@ -1,491 +1,637 @@
 <!doctype html>
 <html lang="el">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Mouhtis AC Planner — Pro</title>
-
-<!-- libs -->
-<link rel="preconnect" href="https://fonts.gstatic.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-  :root{
-    --bg:#f6f7fb; --card:#ffffff; --accent:#0b74de; --muted:#6b7280; --danger:#e02424;
-  }
-  *{box-sizing:border-box;font-family:Inter,Arial,Helvetica,sans-serif}
-  body{margin:0;background:var(--bg);color:#111}
-  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(90deg,#fff, #f9fbff);border-bottom:1px solid #e6e9ef}
-  h1{margin:0;font-size:18px}
-  .toolbar{display:flex;gap:8px;align-items:center}
-  button,select,input{font-size:14px}
-  .btn{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
-  .btn.secondary{background:#fff;color:var(--accent);border:1px solid #cfe3fb}
-  .container{display:flex;gap:16px;padding:16px;max-width:1200px;margin:12px auto}
-  .left{flex:1;background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.05)}
-
-  /* RIGHT PANEL – FIXES */
-  .right{
-    width:100%;
-    max-width:420px;
-    background:var(--card);
-    padding:12px;
-    border-radius:12px;
-    box-shadow:0 6px 18px rgba(15,23,42,0.05);
-    height:78vh;
-    overflow-y:auto;
-    overflow-x:hidden;
-  }
-
-  #canvasWrap{border:1px dashed #e6eefc;border-radius:8px;overflow:auto;background:#fff;padding:8px}
-  canvas{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff;touch-action:none;}
-  .label{font-size:12px;color:var(--muted);margin-top:8px}
-  .rooms-table{width:100%;border-collapse:collapse;margin-top:8px}
-  .rooms-table th,.rooms-table td{padding:6px;border-bottom:1px solid #f1f5f9;font-size:13px;text-align:left}
-  .small{font-size:12px;color:var(--muted)}
-  .controls-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-  input[type="file"]{padding:6px}
-  .model{display:flex;justify-content:space-between;padding:8px 6px;border-radius:8px;border:1px solid #f1f5f9;margin-bottom:8px}
-  .chip{background:#f1f5f9;padding:4px 8px;border-radius:999px;font-size:12px}
-  footer{padding:10px;text-align:center;color:var(--muted);font-size:13px}
-
-  @media(max-width:900px){
-    .container{flex-direction:column}
-    .right{
-      width:100%;
-      max-width:none;
-      height:auto;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mouhtis HVAC Suite</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f3f4f6;--card:#ffffff;--accent:#0b74de;--accent-soft:#e0edff;
+      --muted:#6b7280;--border:#e5e7eb;
     }
-  }
-</style>
+    *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif}
+    body{margin:0;background:var(--bg);color:#111;}
+    header{display:flex;align-items:center;justify-content:space-between;
+      padding:12px 18px;background:#fff;border-bottom:1px solid var(--border);}
+    header h1{margin:0;font-size:18px;}
+    header .subtitle{font-size:12px;color:var(--muted);}
+    .layout{display:flex;min-height:calc(100vh - 54px);}
+    .sidebar{width:230px;background:#020617;color:#e5e7eb;padding:14px 10px;}
+    .brand{font-size:14px;font-weight:600;margin-bottom:10px;padding:6px 10px;}
+    .nav-btn{display:flex;align-items:center;width:100%;border:none;
+      background:transparent;color:#e5e7eb;text-align:left;padding:8px 10px;
+      border-radius:8px;font-size:14px;margin-bottom:4px;cursor:pointer;}
+    .nav-btn.active{background:rgba(148,163,184,0.2);}
+    .nav-btn span.icon{width:18px;margin-right:8px;text-align:center;}
+    main{flex:1;padding:16px;overflow:auto;}
+    .cards{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+    .card{background:var(--card);border-radius:12px;border:1px solid var(--border);
+      padding:10px 12px;flex:1;min-width:200px;}
+    .card h3{margin:0 0 6px 0;font-size:14px;}
+    .card p{margin:0;font-size:13px;color:var(--muted);}
+    .btn{border:none;border-radius:999px;padding:7px 12px;font-size:13px;
+      cursor:pointer;background:var(--accent);color:#fff;}
+    .btn.secondary{background:#fff;color:var(--accent);border:1px solid var(--accent-soft);}
+    .btn.small{padding:4px 8px;font-size:12px;}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+    .section-title h2{margin:0;font-size:17px;}
+    .section-title span{font-size:12px;color:var(--muted);}
+    .grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:14px;}
+    .panel{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:10px 12px;}
+    .panel h3{margin:0 0 8px 0;font-size:14px;}
+    label{display:block;font-size:12px;color:var(--muted);margin-top:6px;margin-bottom:2px;}
+    input,textarea,select{
+      width:100%;padding:6px 8px;border-radius:8px;border:1px solid var(--border);
+      font-size:13px;
+    }
+    textarea{resize:vertical;min-height:60px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;}
+    th,td{padding:6px 4px;border-bottom:1px solid #f1f5f9;text-align:left;}
+    th{font-size:12px;color:var(--muted);}
+    .tag{display:inline-flex;align-items:center;border-radius:999px;background:#f1f5f9;
+      padding:2px 8px;font-size:11px;color:#374151;margin-right:4px;}
+    .pill{border-radius:999px;padding:2px 8px;font-size:11px;}
+    .pill.green{background:#dcfce7;color:#166534;}
+    .pill.red{background:#fee2e2;color:#b91c1c;}
+    .pill.orange{background:#ffedd5;color:#9a3412;}
+    .muted{color:var(--muted);font-size:12px;}
+    .link{color:var(--accent);cursor:pointer;font-size:12px;}
+    .toolbar-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center;}
+    @media(max-width:900px){
+      .layout{flex-direction:column;}
+      .sidebar{width:100%;display:flex;overflow-x:auto;}
+      .brand{display:none;}
+      .nav-btn{white-space:nowrap;flex:1;justify-content:center;}
+      .grid{grid-template-columns:1fr;}
+    }
+  </style>
 </head>
 <body>
 <header>
-  <div style="display:flex;gap:12px;align-items:center">
-    <h1>Mouhtis AC Planner — Pro</h1>
-    <div class="small">Fully client-side prototype — GitHub Pages</div>
+  <div>
+    <h1>Mouhtis HVAC Suite</h1>
+    <div class="subtitle">Διαχείριση έργων, πελατών, εγκαταστάσεων & AC Planner</div>
   </div>
-
-  <div class="toolbar">
-    <button class="btn" id="exportPdf">Export PDF</button>
-    <button class="btn secondary" id="helpBtn">Help</button>
-  </div>
+  <button class="btn small" id="openAcPlanner">Άνοιγμα AC Planner</button>
 </header>
 
-<div class="container">
-  <div class="left">
-    <div class="controls-row">
-      <input id="file" type="file" accept="image/*" />
-      <button class="btn" id="drawRoom">Draw room</button>
-      <button class="btn" id="placeAC">Place AC</button>
-      <button class="btn" id="autoPlace">Auto place 2 AC</button>
-      <button class="btn secondary" id="clearAll">Clear</button>
-      <button class="btn" id="calc">Calculate</button>
-    </div>
-
-    <div id="canvasWrap"><canvas id="cv" width="1000" height="700"></canvas></div>
-    <div style="margin-top:8px" class="small">Tips: μετά το upload, πάτα «Draw room» και σύρε για να δημιουργήσεις δωμάτια.</div>
-  </div>
-
-  <aside class="right">
-    <h3 style="margin:0 0 8px 0">Rooms & Parameters</h3>
-    <div id="roomsList" class="small">No rooms yet. Draw rooms on the plan to edit details.</div>
-
-    <h3 style="margin-top:12px">Results</h3>
-    <div id="results" class="small">Press Calculate to compute loads.</div>
-
-    <h3 style="margin-top:12px">Model Recommendations</h3>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input id="budget" type="number" placeholder="Budget (€)" style="flex:1;padding:8px" value="1300"/>
-      <label style="display:flex;align-items:center;gap:6px"><input id="dehum" type="checkbox" checked/> dehum</label>
-    </div>
-    <div id="modelsList"></div>
-
-    <h3 style="margin-top:12px">Auto-placement notes</h3>
-    <ul class="small">
-      <li>Auto places ACs in top two heat-load rooms, favors center & upper wall.</li>
-      <li>Manual placement: choose "Place AC" and click inside room.</li>
-    </ul>
-
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">Mouhtis Tools</div>
+    <button class="nav-btn active" data-view="dashboard">
+      <span class="icon">🏠</span> Dashboard
+    </button>
+    <button class="nav-btn" data-view="clients">
+      <span class="icon">👤</span> Πελάτες
+    </button>
+    <button class="nav-btn" data-view="projects">
+      <span class="icon">📋</span> Έργα
+    </button>
+    <button class="nav-btn" data-view="maintenance">
+      <span class="icon">🛠️</span> Συντηρήσεις
+    </button>
   </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="view-dashboard">
+      <div class="section-title">
+        <h2>Dashboard</h2>
+        <span id="todayLabel"></span>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <h3>Σύνοψη</h3>
+          <p>
+            Πελάτες: <strong id="statClients">0</strong><br>
+            Έργα: <strong id="statProjects">0</strong><br>
+            Ανοιχτές συντηρήσεις: <strong id="statMaint">0</strong>
+          </p>
+        </div>
+        <div class="card">
+          <h3>Γρήγορες ενέργειες</h3>
+          <p>
+            <button class="btn small" data-open="clients">Νέος πελάτης</button>
+            <button class="btn small" data-open="projects">Νέο έργο</button>
+            <button class="btn small" data-open="maintenance">Νέα συντήρηση</button>
+          </p>
+        </div>
+        <div class="card">
+          <h3>Σύνδεση με AC Planner</h3>
+          <p class="muted">
+            Χρησιμοποίησε το Mouhtis AC Planner για υπολογισμό BTU και τοποθέτηση μονάδων.
+          </p>
+          <button class="btn secondary small" id="openAcPlanner2">Άνοιγμα AC Planner</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <h3>Επόμενες συντηρήσεις</h3>
+          <div id="dashMaint" class="muted">Δεν υπάρχουν προγραμματισμένες συντηρήσεις.</div>
+        </div>
+        <div class="panel">
+          <h3>Πρόσφατα έργα</h3>
+          <div id="dashProjects" class="muted">Δεν υπάρχουν καταχωρημένα έργα.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIENTS -->
+    <section id="view-clients" style="display:none">
+      <div class="section-title">
+        <h2>Πελάτες</h2>
+        <span>Καταχώρηση στοιχείων πελατών & χώρων</span>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h3>Νέος / Επεξεργασία πελάτη</h3>
+          <label>Ονοματεπώνυμο</label>
+          <input id="cl-name" placeholder="π.χ. Γιάννης Παπαδόπουλος" />
+          <label>Τηλέφωνο</label>
+          <input id="cl-phone" placeholder="69xxxxxxxx" />
+          <label>Email</label>
+          <input id="cl-email" placeholder="example@mail.com" />
+          <label>Διεύθυνση</label>
+          <input id="cl-address" placeholder="Οδός, αριθμός, πόλη" />
+          <label>Σημειώσεις</label>
+          <textarea id="cl-notes" placeholder="Είδος χώρου, ώρες λειτουργίας κλπ."></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn small" id="cl-save">Αποθήκευση</button>
+            <button class="btn secondary small" id="cl-clear">Καθαρισμός</button>
+          </div>
+          <div id="cl-msg" class="muted" style="margin-top:6px;"></div>
+        </div>
+        <div class="panel">
+          <h3>Λίστα πελατών</h3>
+          <div id="clientsTableWrap" class="muted">Δεν υπάρχουν πελάτες ακόμη.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section id="view-projects" style="display:none">
+      <div class="section-title">
+        <h2>Έργα</h2>
+        <span>Διαχείριση έργων εγκατάστασης / συντήρησης</span>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h3>Νέο / Επεξεργασία έργου</h3>
+          <label>Πελάτης</label>
+          <select id="pr-client"></select>
+          <label>Τίτλος έργου</label>
+          <input id="pr-title" placeholder="π.χ. Εγκατάσταση 2x12.000 BTU" />
+          <label>Τοποθεσία</label>
+          <input id="pr-location" placeholder="π.χ. Διαμέρισμα Τσιμισκή 12" />
+          <label>Κατηγορία</label>
+          <select id="pr-type">
+            <option value="install">Εγκατάσταση</option>
+            <option value="service">Service / Βλάβη</option>
+            <option value="maintenance">Προληπτική συντήρηση</option>
+          </select>
+          <label>Ημερομηνία</label>
+          <input id="pr-date" type="date" />
+          <label>Κατάσταση</label>
+          <select id="pr-status">
+            <option value="open">Ανοιχτό</option>
+            <option value="inprogress">Σε εξέλιξη</option>
+            <option value="done">Ολοκληρωμένο</option>
+          </select>
+          <label>Σημειώσεις / εξοπλισμός</label>
+          <textarea id="pr-notes" placeholder="Μοντέλα κλιματιστικών, αεραγωγοί, ειδικές παρατηρήσεις."></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn small" id="pr-save">Αποθήκευση</button>
+            <button class="btn secondary small" id="pr-clear">Καθαρισμός</button>
+          </div>
+          <div id="pr-msg" class="muted" style="margin-top:6px;"></div>
+        </div>
+        <div class="panel">
+          <h3>Λίστα έργων</h3>
+          <div class="toolbar-row">
+            <span class="muted">Φίλτρο κατάστασης:</span>
+            <select id="pr-filter" style="width:auto;min-width:120px;">
+              <option value="all">Όλα</option>
+              <option value="open">Ανοιχτά</option>
+              <option value="inprogress">Σε εξέλιξη</option>
+              <option value="done">Ολοκληρωμένα</option>
+            </select>
+          </div>
+          <div id="projectsTableWrap" class="muted">Δεν υπάρχουν έργα ακόμη.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAINTENANCE -->
+    <section id="view-maintenance" style="display:none">
+      <div class="section-title">
+        <h2>Συντηρήσεις</h2>
+        <span>Προγραμματισμός & παρακολούθηση συντηρήσεων</span>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h3>Νέα συντήρηση</h3>
+          <label>Πελάτης</label>
+          <select id="mt-client"></select>
+          <label>Ημερομηνία</label>
+          <input type="date" id="mt-date" />
+          <label>Περιγραφή</label>
+          <textarea id="mt-desc" placeholder="Καθαρισμός φίλτρων, έλεγχος ψυκτικού, γενική συντήρηση."></textarea>
+          <label>Κατάσταση</label>
+          <select id="mt-status">
+            <option value="open">Προγραμματισμένη</option>
+            <option value="done">Ολοκληρωμένη</option>
+          </select>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn small" id="mt-save">Αποθήκευση</button>
+            <button class="btn secondary small" id="mt-clear">Καθαρισμός</button>
+          </div>
+          <div id="mt-msg" class="muted" style="margin-top:6px;"></div>
+        </div>
+        <div class="panel">
+          <h3>Λίστα συντηρήσεων</h3>
+          <div class="toolbar-row">
+            <span class="muted">Φίλτρο:</span>
+            <select id="mt-filter" style="width:auto;min-width:120px;">
+              <option value="upcoming">Επερχόμενες</option>
+              <option value="all">Όλες</option>
+            </select>
+          </div>
+          <div id="mtTableWrap" class="muted">Δεν υπάρχουν συντηρήσεις ακόμη.</div>
+        </div>
+      </div>
+    </section>
+  </main>
 </div>
 
-<footer>Prototype by Mouhtis — tell me if you want server-side storage or automatic room detection.</footer>
-
 <script>
-/* --------------------------------------------- */
-/* STATE                                          */
-/* --------------------------------------------- */
+  // ---------- ΒΟΗΘΗΤΙΚΑ ----------
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
-cv.style.touchAction = "none"; // iPhone fix for drag/touch
-
-let bgImg = null;
-let mode = 'select';
-let drawing = false, start=null;
-let last = {x:0,y:0};
-let rooms = [];
-let acMarkers = [];
-
-const BTU_PER_M2 = 341.2;
-const W_TO_BTU = 3.412;
-
-/* --------------------------------------------- */
-/* RESIZE + DRAW                                  */
-/* --------------------------------------------- */
-
-function resizeCanvasTo(w,h){
-  cv.width = w;
-  cv.height = h;
-  drawAll();
-}
-
-function screenToCanvas(evt){
-  const r = cv.getBoundingClientRect();
-  const x = (evt.clientX - r.left) * (cv.width / r.width);
-  const y = (evt.clientY - r.top) * (cv.height / r.height);
-  return {x,y};
-}
-
-function drawAll(){
-  ctx.clearRect(0,0,cv.width,cv.height); // iPhone safe reset
-
-  if(bgImg) {
-    ctx.drawImage(bgImg,0,0,cv.width,cv.height);
-  } else {
-    ctx.fillStyle='#fff';
-    ctx.fillRect(0,0,cv.width,cv.height);
-  }
-
-  // rooms
-  rooms.forEach((r,i)=>{
-    ctx.save();
-    ctx.strokeStyle = '#0b74de';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(r.x,r.y,r.w,r.h);
-    ctx.fillStyle = 'rgba(11,116,222,0.06)';
-    ctx.fillRect(r.x,r.y,r.w,r.h);
-    ctx.fillStyle = '#0b2540';
-    ctx.font = '14px Inter, Arial';
-    const label = (r.name && r.name.trim())? r.name : 'Room '+(i+1);
-    ctx.fillText(label + (r.area? ' ('+r.area+' m²)':''), r.x+8, r.y+18);
-    ctx.restore();
-  });
-
-  // AC markers
-  acMarkers.forEach(m=>{
-    ctx.beginPath();
-    ctx.fillStyle = '#000';
-    ctx.arc(m.x,m.y,9,0,Math.PI*2);
-    ctx.fill();
-    ctx.closePath();
-    ctx.fillStyle='white';
-    ctx.font='10px Inter';
-    ctx.fillText('AC', m.x-10, m.y+3);
-  });
-}
-
-/* --------------------------------------------- */
-/* IMAGE UPLOAD + iPHONE FIX                      */
-/* --------------------------------------------- */
-
-document.getElementById('file').addEventListener('change', e=>{
-  const f = e.target.files[0];
-  if(!f) return;
-
-  const reader = new FileReader();
-  reader.onload = ev=>{
-    const img = new Image();
-    img.onload = ()=>{
-
-      let iw = img.width,
-          ih = img.height;
-
-      const maxW = 1000, maxH = 700;
-      const ratio = Math.min(maxW/iw, maxH/ih, 1);
-
-      const w = Math.round(iw*ratio),
-            h = Math.round(ih*ratio);
-
-      bgImg = img;
-
-      // iPhone: delay resize to ensure proper draw
-      resizeCanvasTo(w,h);
-      setTimeout(drawAll, 50);
-    };
-    img.src = ev.target.result;
+  const STORAGE_KEY = 'mouhtis_hvac_suite_v1';
+  let state = {
+    clients: [],
+    projects: [],
+    maintenance: [],
+    currentClientId: null,
+    currentProjectId: null,
+    currentMaintId: null
   };
-  reader.readAsDataURL(f);
-});
 
-/* --------------------------------------------- */
-/* MOUSE + TOUCH EVENTS                           */
-/* --------------------------------------------- */
-
-cv.addEventListener('mousemove', e=>{
-  last = screenToCanvas(e);
-
-  if(drawing && mode==='draw' && start){
-    drawAll();
-    ctx.save();
-    ctx.strokeStyle='#16a34a';
-    ctx.setLineDash([6,4]);
-    ctx.strokeRect(start.x, start.y, last.x - start.x, last.y - start.y);
-    ctx.restore();
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) state = Object.assign(state, JSON.parse(raw));
+    }catch(e){}
   }
-});
-
-cv.addEventListener('mousedown', e=>{
-  if(mode==='draw'){
-    drawing = true;
-    start = screenToCanvas(e);
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    refreshStats();
   }
-  else if(mode==='place'){
-    const p = screenToCanvas(e);
-    let idx=null;
-    rooms.forEach((r,i)=>{
-      if(p.x>=r.x && p.y>=r.y && p.x<=r.x+r.w && p.y<=r.y+r.h) idx=i;
+
+  function formatDate(d){
+    if(!d) return '';
+    const parts = d.split('-');
+    if(parts.length!==3) return d;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  // ---------- NAV ----------
+  function showView(id){
+    $$('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+    ['dashboard','clients','projects','maintenance'].forEach(v=>{
+      const s = $('#view-'+v);
+      if(s) s.style.display = (v===id)?'block':'none';
     });
-    acMarkers.push({x:p.x,y:p.y,roomIndex:idx});
-    drawAll();
-    renderRoomsList();
-  }
-});
-
-cv.addEventListener('mouseup', e=>{
-  if(mode==='draw' && drawing && start){
-    const p = screenToCanvas(e);
-    const nx = Math.min(start.x,p.x),
-          ny = Math.min(start.y,p.y);
-    const nw = Math.abs(p.x - start.x),
-          nh = Math.abs(p.y - start.y);
-
-    if(nw>20 && nh>20){
-      rooms.push({
-        x:nx,y:ny,w:nw,h:nh,
-        name:'',
-        area:'',
-        height:2.7,
-        windows:0,
-        win_u:2.8,
-        occupants:1,
-        ins:1.0
-      });
-      renderRoomsList();
-    }
-
-    start=null;
-    drawing=false;
-    drawAll();
-  }
-});
-
-/* --------------------------------------------- */
-/* RENDER ROOMS LIST                             */
-/* --------------------------------------------- */
-
-function renderRoomsList(){
-  const div = document.getElementById('roomsList');
-
-  if(rooms.length===0){
-    div.innerHTML = '<div class="small">No rooms — draw on the plan first.</div>';
-    return;
+    if(id==='clients') renderClients();
+    if(id==='projects') renderProjects();
+    if(id==='maintenance') renderMaintenance();
   }
 
-  let html = '<table class="rooms-table"><tr><th>#</th><th>Name</th><th>m²</th><th>h</th><th>windows</th><th>Uwin</th><th>occ</th><th>ins</th><th></th></tr>';
-
-  rooms.forEach((r,i)=>{
-    html += `
-    <tr>
-      <td>${i+1}</td>
-      <td><input data-i="${i}" class="r_name" value="${r.name||''}" style="width:90px"/></td>
-      <td><input data-i="${i}" class="r_area" value="${r.area||''}" style="width:60px"/></td>
-      <td><input data-i="${i}" class="r_height" value="${r.height||2.7}" style="width:50px"/></td>
-      <td><input data-i="${i}" class="r_win" value="${r.windows||0}" style="width:60px"/></td>
-      <td><input data-i="${i}" class="r_winu" value="${r.win_u||2.8}" style="width:60px"/></td>
-      <td><input data-i="${i}" class="r_occ" value="${r.occupants||1}" style="width:45px"/></td>
-      <td><input data-i="${i}" class="r_ins" value="${r.ins||1.0}" style="width:50px"/></td>
-      <td><button data-i="${i}" class="delRoom" style="padding:6px">Del</button></td>
-    </tr>
-    `;
+  $$('.nav-btn').forEach(b=>{
+    b.addEventListener('click',()=>showView(b.dataset.view));
   });
 
-  html += '</table>';
-  div.innerHTML = html;
+  // quick open from dashboard
+  $('[data-open="clients"]').onclick = ()=>showView('clients');
+  $('[data-open="projects"]').onclick = ()=>showView('projects');
+  $('[data-open="maintenance"]').onclick = ()=>showView('maintenance');
 
-  // attach listeners
-  document.querySelectorAll('.r_name').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].name = el.value
-  );
+  // ---------- AC PLANNER LINKS ----------
+  function openPlanner(){
+    window.open('https://mouhtis.github.io/mouhtis-ac-planner/','_blank');
+  }
+  $('#openAcPlanner').onclick = openPlanner;
+  $('#openAcPlanner2').onclick = openPlanner;
 
-  document.querySelectorAll('.r_area').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].area = parseFloat(el.value)||''
-  );
-
-  document.querySelectorAll('.r_height').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].height = parseFloat(el.value)||2.7
-  );
-
-  document.querySelectorAll('.r_win').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].windows = parseFloat(el.value)||0
-  );
-
-  document.querySelectorAll('.r_winu').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].win_u = parseFloat(el.value)||2.8
-  );
-
-  document.querySelectorAll('.r_occ').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].occupants = parseInt(el.value)||1
-  );
-
-  document.querySelectorAll('.r_ins').forEach(el =>
-    el.onchange = ()=> rooms[el.dataset.i].ins = parseFloat(el.value)||1.0
-  );
-
-  document.querySelectorAll('.delRoom').forEach(btn =>
-    btn.onclick = ()=>{
-      const i = Number(btn.dataset.i);
-      rooms.splice(i,1);
-
-      acMarkers.forEach(m=>{
-        if(m.roomIndex === i) m.roomIndex = null;
-        else if(m.roomIndex > i) m.roomIndex--;
-      });
-
-      renderRoomsList();
-      drawAll();
-    }
-  );
-}
-
-/* --------------------------------------------- */
-/* BTU CALCULATION                               */
-/* --------------------------------------------- */
-
-function calcRoomBTU(r){
-  const area = parseFloat(r.area)||0;
-
-  const base = area * BTU_PER_M2;
-  const heightFactor = (parseFloat(r.height)||2.5) / 2.5;
-  const deltaT = 14;
-
-  const winCond = (parseFloat(r.windows)||0) * (parseFloat(r.win_u)||2.8) * deltaT;
-  const winBTU = Math.round(winCond * W_TO_BTU);
-
-  const pplBTU = Math.max(0, (parseInt(r.occupants)||1)-2) * 600;
-
-  const total = Math.round(base * heightFactor) + winBTU + pplBTU;
-
-  return Math.round(total * (parseFloat(r.ins)||1.0));
-}
-
-function calculateAll(){
-  if(rooms.length===0){
-    alert('Draw at least one room first');
-    return [];
+  // ---------- CLIENTS ----------
+  function clearClientForm(){
+    state.currentClientId = null;
+    $('#cl-name').value='';
+    $('#cl-phone').value='';
+    $('#cl-email').value='';
+    $('#cl-address').value='';
+    $('#cl-notes').value='';
+    $('#cl-msg').textContent='';
   }
 
-  const results = rooms.map((r,i)=>{
-    const btu = calcRoomBTU(r);
-    return {
-      index:i,
-      name:r.name||('Room '+(i+1)),
-      area:r.area||'?'
-      ,btu
+  $('#cl-clear').onclick = clearClientForm;
+
+  $('#cl-save').onclick = ()=>{
+    const name = $('#cl-name').value.trim();
+    if(!name){ $('#cl-msg').textContent='Συμπλήρωσε όνομα.'; return; }
+    const obj = {
+      id: state.currentClientId || ('c_'+Date.now()),
+      name,
+      phone: $('#cl-phone').value.trim(),
+      email: $('#cl-email').value.trim(),
+      address: $('#cl-address').value.trim(),
+      notes: $('#cl-notes').value.trim()
     };
-  });
+    const idx = state.clients.findIndex(c=>c.id===obj.id);
+    if(idx>=0) state.clients[idx]=obj; else state.clients.push(obj);
+    state.currentClientId = obj.id;
+    $('#cl-msg').textContent='Αποθηκεύτηκε.';
+    saveState();
+    renderClients();
+    populateClientSelects();
+  };
 
-  let html = '<table class="rooms-table"><tr><th>Room</th><th>Area</th><th>BTU</th><th>Suggested</th></tr>';
-
-  results.forEach(r=>{
-    let sugg =
-      r.btu<=7000 ? '7,000' :
-      r.btu<=10000 ? '9,000' :
-      r.btu<=14000 ? '12,000' :
-      r.btu<=20000 ? '18,000' : '24,000+';
-
-    html += `<tr>
-      <td>${r.name}</td>
-      <td>${r.area}</td>
-      <td>${r.btu}</td>
-      <td>${sugg}</td>
-    </tr>`;
-  });
-
-  html += '</table>';
-
-  document.getElementById('results').innerHTML = html;
-
-  return results;
-}
-
-/* --------------------------------------------- */
-/* AUTO PLACE 2 ACs                              */
-/* --------------------------------------------- */
-
-function autoPlace2(){
-  const arr = calculateAll();
-  if(!arr || arr.length===0) return;
-
-  const top = arr.slice().sort((a,b)=>b.btu - a.btu).slice(0,2);
-
-  acMarkers = [];
-
-  top.forEach(t=>{
-    const r = rooms[t.index];
-    const px = r.x + r.w*0.5;
-    const py = r.y + r.h*0.22;
-    acMarkers.push({x:px,y:py,roomIndex:t.index});
-  });
-
-  drawAll();
-  renderRoomsList();
-}
-
-/* --------------------------------------------- */
-/* EXPORT PDF                                    */
-/* --------------------------------------------- */
-
-document.getElementById('exportPdf').addEventListener('click', async ()=>{
-  const canvasWrap = document.getElementById('canvasWrap');
-  const shot = await html2canvas(canvasWrap,{scale:1.5});
-  const img = shot.toDataURL('image/png');
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape', unit:'px', format:[shot.width+20, shot.height+300]});
-  doc.addImage(img,'PNG',10,10, shot.width, shot.height);
-  doc.save('mouhtis_ac_report.pdf');
-});
-
-/* --------------------------------------------- */
-/* UI BUTTONS                                    */
-/* --------------------------------------------- */
-
-document.getElementById('drawRoom').onclick = ()=> mode='draw';
-document.getElementById('placeAC').onclick = ()=> mode='place';
-document.getElementById('clearAll').onclick = ()=>{
-  if(confirm('Clear all?')){
-    rooms=[];
-    acMarkers=[];
-    renderRoomsList();
-    drawAll();
+  function renderClients(){
+    const wrap = $('#clientsTableWrap');
+    if(!state.clients.length){
+      wrap.innerHTML='Δεν υπάρχουν πελάτες.';
+      return;
+    }
+    let html = '<table><thead><tr><th>Όνομα</th><th>Τηλ</th><th>Διεύθυνση</th><th></th></tr></thead><tbody>';
+    state.clients.forEach(c=>{
+      html += `<tr>
+        <td>${c.name}</td>
+        <td>${c.phone||''}</td>
+        <td>${c.address||''}</td>
+        <td><span class="link" data-edit-client="${c.id}">Επεξ.</span></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    $$('#clientsTableWrap [data-edit-client]').forEach(el=>{
+      el.onclick = ()=>{
+        const c = state.clients.find(x=>x.id===el.dataset.editClient);
+        if(!c) return;
+        state.currentClientId = c.id;
+        $('#cl-name').value=c.name;
+        $('#cl-phone').value=c.phone||'';
+        $('#cl-email').value=c.email||'';
+        $('#cl-address').value=c.address||'';
+        $('#cl-notes').value=c.notes||'';
+        $('#cl-msg').textContent='Επεξεργασία πελάτη.';
+        showView('clients');
+      };
+    });
   }
-};
 
-document.getElementById('calc').onclick = ()=> calculateAll();
+  function populateClientSelects(){
+    const selects = [$('#pr-client'), $('#mt-client')];
+    selects.forEach(sel=>{
+      if(!sel) return;
+      const current = sel.value;
+      sel.innerHTML = '';
+      const optEmpty = document.createElement('option');
+      optEmpty.value='';
+      optEmpty.textContent='— Επιλογή πελάτη —';
+      sel.appendChild(optEmpty);
+      state.clients.forEach(c=>{
+        const o = document.createElement('option');
+        o.value=c.id;
+        o.textContent=c.name;
+        sel.appendChild(o);
+      });
+      if(current) sel.value=current;
+    });
+  }
 
-document.getElementById('helpBtn').onclick = ()=>{
-  alert('Help:\n1) Upload plan\n2) Draw rooms\n3) Fill parameters\n4) Calculate');
-};
+  // ---------- PROJECTS ----------
+  function clearProjectForm(){
+    state.currentProjectId=null;
+    $('#pr-client').value='';
+    $('#pr-title').value='';
+    $('#pr-location').value='';
+    $('#pr-type').value='install';
+    $('#pr-date').value='';
+    $('#pr-status').value='open';
+    $('#pr-notes').value='';
+    $('#pr-msg').textContent='';
+  }
+  $('#pr-clear').onclick = clearProjectForm;
 
-/* --------------------------------------------- */
-/* INITIAL DRAW                                  */
-/* --------------------------------------------- */
+  $('#pr-save').onclick = ()=>{
+    const title = $('#pr-title').value.trim();
+    if(!title){ $('#pr-msg').textContent='Συμπλήρωσε τίτλο έργου.'; return; }
+    const obj = {
+      id: state.currentProjectId || ('p_'+Date.now()),
+      clientId: $('#pr-client').value || '',
+      title,
+      location: $('#pr-location').value.trim(),
+      type: $('#pr-type').value,
+      date: $('#pr-date').value,
+      status: $('#pr-status').value,
+      notes: $('#pr-notes').value.trim()
+    };
+    const idx = state.projects.findIndex(p=>p.id===obj.id);
+    if(idx>=0) state.projects[idx]=obj; else state.projects.push(obj);
+    state.currentProjectId = obj.id;
+    $('#pr-msg').textContent='Αποθηκεύτηκε.';
+    saveState();
+    renderProjects();
+  };
 
-drawAll();
+  function renderProjects(){
+    const wrap = $('#projectsTableWrap');
+    if(!state.projects.length){
+      wrap.innerHTML='Δεν υπάρχουν έργα.';
+      return;
+    }
+    const filter = $('#pr-filter').value;
+    let arr = state.projects.slice();
+    if(filter!=='all') arr = arr.filter(p=>p.status===filter);
+    arr.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    let html = '<table><thead><tr><th>Ημ/νία</th><th>Πελάτης</th><th>Τίτλος</th><th>Τύπος</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
+    arr.forEach(p=>{
+      const cl = state.clients.find(c=>c.id===p.clientId);
+      const statusPill =
+        p.status==='done' ? '<span class="pill green">Ολοκληρωμένο</span>' :
+        p.status==='inprogress' ? '<span class="pill orange">Σε εξέλιξη</span>' :
+        '<span class="pill red">Ανοιχτό</span>';
+      const typeTag =
+        p.type==='install' ? 'Εγκατάσταση' :
+        p.type==='service' ? 'Service' :
+        'Συντήρηση';
+      html += `<tr>
+        <td>${formatDate(p.date||'')}</td>
+        <td>${cl?cl.name:'—'}</td>
+        <td>${p.title}</td>
+        <td>${typeTag}</td>
+        <td>${statusPill}</td>
+        <td><span class="link" data-edit-project="${p.id}">Επεξ.</span></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    $$('#projectsTableWrap [data-edit-project]').forEach(el=>{
+      el.onclick = ()=>{
+        const p = state.projects.find(x=>x.id===el.dataset.editProject);
+        if(!p) return;
+        state.currentProjectId = p.id;
+        $('#pr-client').value=p.clientId||'';
+        $('#pr-title').value=p.title;
+        $('#pr-location').value=p.location||'';
+        $('#pr-type').value=p.type;
+        $('#pr-date').value=p.date||'';
+        $('#pr-status').value=p.status;
+        $('#pr-notes').value=p.notes||'';
+        $('#pr-msg').textContent='Επεξεργασία έργου.';
+        showView('projects');
+      };
+    });
 
+    // Dashboard recent
+    const dash = $('#dashProjects');
+    const recent = state.projects.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
+    if(!recent.length){ dash.textContent='Δεν υπάρχουν καταχωρημένα έργα.'; }
+    else{
+      let h = '<ul class="muted" style="padding-left:18px;margin:4px 0;">';
+      recent.forEach(p=>{
+        const cl = state.clients.find(c=>c.id===p.clientId);
+        h += `<li>${formatDate(p.date||'')} • ${p.title} (${cl?cl.name:'—'})</li>`;
+      });
+      h += '</ul>';
+      dash.innerHTML = h;
+    }
+  }
+  $('#pr-filter').onchange = renderProjects;
+
+  // ---------- MAINTENANCE ----------
+  function clearMaintForm(){
+    state.currentMaintId=null;
+    $('#mt-client').value='';
+    $('#mt-date').value='';
+    $('#mt-desc').value='';
+    $('#mt-status').value='open';
+    $('#mt-msg').textContent='';
+  }
+  $('#mt-clear').onclick = clearMaintForm;
+
+  $('#mt-save').onclick = ()=>{
+    const date = $('#mt-date').value;
+    if(!date){ $('#mt-msg').textContent='Επίλεξε ημερομηνία.'; return; }
+    const obj = {
+      id: state.currentMaintId || ('m_'+Date.now()),
+      clientId: $('#mt-client').value || '',
+      date,
+      desc: $('#mt-desc').value.trim(),
+      status: $('#mt-status').value
+    };
+    const idx = state.maintenance.findIndex(m=>m.id===obj.id);
+    if(idx>=0) state.maintenance[idx]=obj; else state.maintenance.push(obj);
+    state.currentMaintId=obj.id;
+    $('#mt-msg').textContent='Αποθηκεύτηκε.';
+    saveState();
+    renderMaintenance();
+  };
+
+  function renderMaintenance(){
+    const wrap = $('#mtTableWrap');
+    if(!state.maintenance.length){
+      wrap.innerHTML='Δεν υπάρχουν συντηρήσεις.';
+      $('#dashMaint').textContent='Δεν υπάρχουν προγραμματισμένες συντηρήσεις.';
+      return;
+    }
+    const filter = $('#mt-filter').value;
+    const today = new Date().toISOString().slice(0,10);
+    let arr = state.maintenance.slice();
+    if(filter==='upcoming'){
+      arr = arr.filter(m=>m.date>=today && m.status!=='done');
+    }
+    arr.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    let html = '<table><thead><tr><th>Ημ/νία</th><th>Πελάτης</th><th>Περιγραφή</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
+    arr.forEach(m=>{
+      const cl = state.clients.find(c=>c.id===m.clientId);
+      const pill = m.status==='done'
+        ? '<span class="pill green">Ολοκληρωμένη</span>'
+        : '<span class="pill orange">Προγραμματισμένη</span>';
+      html += `<tr>
+        <td>${formatDate(m.date)}</td>
+        <td>${cl?cl.name:'—'}</td>
+        <td>${m.desc||''}</td>
+        <td>${pill}</td>
+        <td><span class="link" data-edit-maint="${m.id}">Επεξ.</span></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+
+    $$('#mtTableWrap [data-edit-maint]').forEach(el=>{
+      el.onclick = ()=>{
+        const m = state.maintenance.find(x=>x.id===el.dataset.editMaint);
+        if(!m) return;
+        state.currentMaintId=m.id;
+        $('#mt-client').value=m.clientId||'';
+        $('#mt-date').value=m.date;
+        $('#mt-desc').value=m.desc||'';
+        $('#mt-status').value=m.status;
+        $('#mt-msg').textContent='Επεξεργασία συντήρησης.';
+        showView('maintenance');
+      };
+    });
+
+    // dashboard upcoming
+    const upcoming = state.maintenance
+      .filter(m=>m.date>=today && m.status!=='done')
+      .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+      .slice(0,5);
+    const dash = $('#dashMaint');
+    if(!upcoming.length){
+      dash.textContent='Δεν υπάρχουν προγραμματισμένες συντηρήσεις.';
+    }else{
+      let h = '<ul class="muted" style="padding-left:18px;margin:4px 0;">';
+      upcoming.forEach(m=>{
+        const cl = state.clients.find(c=>c.id===m.clientId);
+        h += `<li>${formatDate(m.date)} • ${cl?cl.name:'—'} – ${m.desc||''}</li>`;
+      });
+      h += '</ul>';
+      dash.innerHTML = h;
+    }
+  }
+  $('#mt-filter').onchange = renderMaintenance;
+
+  // ---------- STATS & INIT ----------
+  function refreshStats(){
+    $('#statClients').textContent = state.clients.length;
+    $('#statProjects').textContent = state.projects.length;
+    const today = new Date().toISOString().slice(0,10);
+    const openMaint = state.maintenance.filter(m=>m.date>=today && m.status!=='done').length;
+    $('#statMaint').textContent = openMaint;
+  }
+
+  function initToday(){
+    const d = new Date();
+    const opts = {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'};
+    $('#todayLabel').textContent = d.toLocaleDateString('el-GR',opts);
+  }
+
+  // ---------- STARTUP ----------
+  loadState();
+  initToday();
+  refreshStats();
+  renderClients();
+  populateClientSelects();
+  renderProjects();
+  renderMaintenance();
+  showView('dashboard');
 </script>
 </body>
 </html>
