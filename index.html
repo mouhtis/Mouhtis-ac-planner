@@ -268,8 +268,7 @@
   </button>
 
   <div class="sidebar-footer">
-    Τα δεδομένα αποθηκεύονται τοπικά (localStorage).  
-    Το Firebase έχει ρυθμιστεί και μπορεί να συνδεθεί αργότερα με Firestore.
+    Τα δεδομένα αποθηκεύονται στη βάση Firebase Firestore του project "mouhtis-suite".
   </div>
 </div>
 
@@ -296,11 +295,35 @@
   <div id="pageContainer"></div>
 </div>
 
-<script>
+<script type="module">
+/* ---------- FIREBASE IMPORTS ---------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, addDoc, setDoc,
+  deleteDoc, doc, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+
+/* ---------- FIREBASE CONFIG ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyAJlPDZktoQmDUIwQrCBsH_GLEhn5N6owE",
+  authDomain: "mouhtis-suite.firebaseapp.com",
+  projectId: "mouhtis-suite",
+  storageBucket: "mouhtis-suite.firebasestorage.app",
+  messagingSenderId: "1093547214312",
+  appId: "1:1093547214312:web:83cc116f17b031f2ef105d",
+  measurementId: "G-84HEW3XYX1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const analytics = getAnalytics(app);
+
+/* ---------- HELPERS ---------- */
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
-
-const STORAGE_KEY = 'mouhtis_hvac_suite_v2';
 
 let state = {
   customers: [],
@@ -313,29 +336,31 @@ let state = {
   currentStudyId:null
 };
 
-function loadState(){
+/* ---------- LOAD FROM FIRESTORE ---------- */
+async function loadCollection(name){
+  const colRef = collection(db, name);
+  let q = colRef;
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){
-      const obj = JSON.parse(raw);
-      state = Object.assign(state, obj);
-    }
+    q = query(colRef, orderBy('createdAt','desc'));
   }catch(e){}
-}
-function saveState(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  renderDashboardSummary();
+  const snap = await getDocs(q);
+  return snap.docs.map(d=>({ id:d.id, ...d.data() }));
 }
 
-/* NAVIGATION */
-function setActivePage(page){
-  $$('.menu-btn').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.page===page);
-  });
-  renderPage(page);
+async function loadStateFromFirestore(){
+  const [customers, projects, tasks, studies] = await Promise.all([
+    loadCollection('customers'),
+    loadCollection('projects'),
+    loadCollection('tasks'),
+    loadCollection('studies')
+  ]);
+  state.customers = customers;
+  state.projects = projects;
+  state.tasks = tasks;
+  state.studies = studies;
 }
 
-/* DASHBOARD */
+/* ---------- UI RENDER HELPERS ---------- */
 function renderDashboardSummary(){
   const container = $('#dashboardSummary');
   if(!container) return;
@@ -350,9 +375,9 @@ function renderDashboardSummary(){
 }
 
 function renderDashboard(){
-  const c_last = state.customers.slice().reverse().slice(0,5);
-  const p_last = state.projects.slice().reverse().slice(0,5);
-  const t_last = state.tasks.slice().reverse().slice(0,5);
+  const c_last = state.customers.slice(0,5);
+  const p_last = state.projects.slice(0,5);
+  const t_last = state.tasks.slice(0,5);
 
   let customersHtml = c_last.length ? '<ul class="muted" style="padding-left:18px;margin:4px 0;">' : 'Δεν υπάρχουν πελάτες.';
   c_last.forEach(c=>{
@@ -403,12 +428,12 @@ function renderDashboard(){
   `;
 }
 
-/* CUSTOMERS PAGE */
+/* ---------- PAGES TEMPLATES ---------- */
 function renderCustomersPage(){
   return `
     <div class="card">
       <h2>Πελάτες</h2>
-      <div class="subtitle">Καταχώρηση και διαχείριση πελατών.</div>
+      <div class="subtitle">Καταχώρηση και διαχείριση πελατών (αποθήκευση σε Firestore).</div>
       <div class="row">
         <div class="col">
           <h3>Νέος / Επεξεργασία πελάτη</h3>
@@ -440,108 +465,11 @@ function renderCustomersPage(){
   `;
 }
 
-function clearCustomerForm(){
-  state.currentCustomerId = null;
-  const n = $('#c_name'); if(!n) return;
-  n.value='';
-  $('#c_phone').value='';
-  $('#c_email').value='';
-  $('#c_address').value='';
-  $('#c_notes').value='';
-  $('#c_msg').textContent='';
-}
-
-function saveCustomer(){
-  const nameEl = $('#c_name');
-  if(!nameEl) return;
-  const name = nameEl.value.trim();
-  if(!name){ $('#c_msg').textContent='Συμπλήρωσε όνομα.'; return; }
-  const obj = {
-    id: state.currentCustomerId || ('c_'+Date.now()),
-    name,
-    phone: $('#c_phone').value.trim(),
-    email: $('#c_email').value.trim(),
-    address: $('#c_address').value.trim(),
-    notes: $('#c_notes').value.trim()
-  };
-  const idx = state.customers.findIndex(c=>c.id===obj.id);
-  if(idx>=0) state.customers[idx]=obj; else state.customers.push(obj);
-  state.currentCustomerId=obj.id;
-  $('#c_msg').textContent='Αποθηκεύτηκε.';
-  saveState();
-  renderCustomerList();
-  populateCustomerSelects();
-}
-
-function renderCustomerList(){
-  const wrap = $('#c_list');
-  if(!wrap) return;
-  const searchEl = $('#c_search');
-  const q = (searchEl?.value || '').toLowerCase();
-  let arr = state.customers.slice();
-  if(q){
-    arr = arr.filter(c=>
-      (c.name||'').toLowerCase().includes(q) ||
-      (c.phone||'').toLowerCase().includes(q) ||
-      (c.address||'').toLowerCase().includes(q) ||
-      (c.email||'').toLowerCase().includes(q)
-    );
-  }
-  if(!arr.length){
-    wrap.textContent = 'Δεν υπάρχουν πελάτες.';
-    return;
-  }
-  let html = '<table><thead><tr><th>Όνομα</th><th>Τηλ</th><th>Διεύθυνση</th><th></th></tr></thead><tbody>';
-  arr.forEach(c=>{
-    html += `<tr>
-      <td>${c.name}</td>
-      <td>${c.phone||''}</td>
-      <td>${c.address||''}</td>
-      <td>
-        <span class="link" data-edit="${c.id}">Επεξ.</span> |
-        <span class="link" data-del="${c.id}">Διαγραφή</span>
-      </td>
-    </tr>`;
-  });
-  html += '</tbody></table>';
-  wrap.innerHTML = html;
-
-  $$('#c_list [data-edit]').forEach(el=>{
-    el.onclick = ()=>{
-      const id = el.dataset.edit;
-      const c = state.customers.find(x=>x.id===id);
-      if(!c) return;
-      state.currentCustomerId = c.id;
-      $('#c_name').value=c.name;
-      $('#c_phone').value=c.phone||'';
-      $('#c_email').value=c.email||'';
-      $('#c_address').value=c.address||'';
-      $('#c_notes').value=c.notes||'';
-      $('#c_msg').textContent='Επεξεργασία πελάτη.';
-    };
-  });
-  $$('#c_list [data-del]').forEach(el=>{
-    el.onclick = ()=>{
-      const id = el.dataset.del;
-      if(!confirm('Διαγραφή πελάτη;'))return;
-      state.customers = state.customers.filter(c=>c.id!==id);
-      state.projects.forEach(p=>{ if(p.customerId===id) p.customerId=''; });
-      state.tasks.forEach(t=>{ if(t.customerId===id) t.customerId=''; });
-      state.studies.forEach(s=>{ if(s.customerId===id) s.customerId=''; });
-      saveState();
-      clearCustomerForm();
-      renderCustomerList();
-      populateCustomerSelects();
-    };
-  });
-}
-
-/* PROJECTS PAGE */
 function renderProjectsPage(){
   return `
     <div class="card">
       <h2>Έργα</h2>
-      <div class="subtitle">Διαχείριση έργων εγκατάστασης / συντήρησης.</div>
+      <div class="subtitle">Διαχείριση έργων εγκατάστασης / συντήρησης (Firestore).</div>
       <div class="row">
         <div class="col">
           <h3>Νέο / Επεξεργασία έργου</h3>
@@ -596,6 +524,276 @@ function renderProjectsPage(){
   `;
 }
 
+function renderTasksPage(){
+  return `
+    <div class="card">
+      <h2>Εργασίες</h2>
+      <div class="subtitle">Καθημερινές εργασίες, βλάβες, συντηρήσεις (Firestore).</div>
+      <div class="row">
+        <div class="col">
+          <h3>Νέα / Επεξεργασία εργασίας</h3>
+          <label>Πελάτης</label>
+          <select id="t_customer"></select>
+          <label>Τίτλος εργασίας</label>
+          <input id="t_title" placeholder="π.χ. Service 24.000 BTU">
+          <label>Ημερομηνία</label>
+          <input id="t_date" type="date">
+          <label>Κατάσταση</label>
+          <select id="t_status">
+            <option value="open">Ανοιχτή</option>
+            <option value="inprogress">Σε εξέλιξη</option>
+            <option value="done">Ολοκληρωμένη</option>
+          </select>
+          <label>Σημειώσεις</label>
+          <textarea id="t_notes" placeholder="Τι έγινε, υλικά, ώρες εργασίας κτλ."></textarea>
+          <div style="margin-top:8px;">
+            <button class="btn small" id="t_save">Αποθήκευση</button>
+            <button class="btn secondary small" id="t_new">Νέα</button>
+          </div>
+          <div id="t_msg" class="muted" style="margin-top:4px;"></div>
+        </div>
+        <div class="col">
+          <div class="search-row">
+            <div>
+              <h3>Λίστα εργασιών</h3>
+              <span class="muted">Φίλτρο κατάστασης & αναζήτηση.</span>
+            </div>
+          </div>
+          <div class="row" style="margin-bottom:4px;">
+            <div style="flex:1;min-width:120px;">
+              <label>Κατάσταση</label>
+              <select id="t_filter">
+                <option value="all">Όλες</option>
+                <option value="open">Ανοιχτές</option>
+                <option value="inprogress">Σε εξέλιξη</option>
+                <option value="done">Ολοκληρωμένες</option>
+              </select>
+            </div>
+            <div style="flex:2;min-width:160px;">
+              <label>Αναζήτηση</label>
+              <input id="t_search" class="search-box" style="max-width:none;width:100%;" placeholder="Τίτλος, πελάτης, σημειώσεις...">
+            </div>
+          </div>
+          <div id="t_list" class="muted">Δεν υπάρχουν εργασίες.</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderStudiesPage(){
+  return `
+    <div class="card">
+      <h2>Μελέτες κλιματισμού</h2>
+      <div class="subtitle">Καταγραφή μελετών, συνδεδεμένων με πελάτες και έργα (Firestore).</div>
+      <div class="row">
+        <div class="col">
+          <h3>Νέα / Επεξεργασία μελέτης</h3>
+          <label>Τίτλος μελέτης</label>
+          <input id="s_title" placeholder="π.χ. Μελέτη διαμερίσματος 85m²">
+          <label>Πελάτης</label>
+          <select id="s_customer"></select>
+          <label>Σχετικό έργο (προαιρετικό)</label>
+          <select id="s_project"></select>
+          <label>Περίληψη / BTU / Παρατηρήσεις</label>
+          <textarea id="s_summary" placeholder="BTU ανά χώρο, μοντέλα κλιματιστικών, θέσεις μονάδων κτλ."></textarea>
+          <div style="margin-top:8px;">
+            <button class="btn small" id="s_save">Αποθήκευση</button>
+            <button class="btn secondary small" id="s_new">Νέα</button>
+          </div>
+          <div id="s_msg" class="muted" style="margin-top:4px;"></div>
+        </div>
+        <div class="col">
+          <div class="search-row">
+            <div>
+              <h3>Αρχείο μελετών</h3>
+              <span class="muted">Αναζήτηση με τίτλο, πελάτη ή έργο.</span>
+            </div>
+          </div>
+          <input id="s_search" class="search-box" placeholder="Τίτλος, πελάτης, έργο...">
+          <div id="s_list" class="muted">Δεν υπάρχουν μελέτες.</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;" class="muted">
+        Για λεπτομερή σχεδίαση & BTU μπορείς να ανοίξεις τον Mouhtis AC Planner σε νέο tab.
+        <button class="btn secondary small" onclick="window.open('https://mouhtis.github.io/mouhtis-ac-planner/','_blank')">Άνοιγμα AC Planner</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- SELECTS ---------- */
+function populateCustomerSelects(){
+  const customerSelectIds = ['p_customer','t_customer','s_customer'];
+  customerSelectIds.forEach(id=>{
+    const sel = $('#'+id);
+    if(!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Επιλογή —</option>';
+    state.customers.forEach(c=>{
+      const opt = document.createElement('option');
+      opt.value=c.id;
+      opt.textContent=c.name;
+      sel.appendChild(opt);
+    });
+    if(prev) sel.value=prev;
+  });
+
+  const projectSelect = $('#s_project');
+  if(projectSelect){
+    const prev = projectSelect.value;
+    projectSelect.innerHTML='<option value="">— Χωρίς έργο —</option>';
+    state.projects.forEach(p=>{
+      const opt = document.createElement('option');
+      opt.value=p.id;
+      opt.textContent=p.title;
+      projectSelect.appendChild(opt);
+    });
+    if(prev) projectSelect.value=prev;
+  }
+}
+
+/* ---------- CRUD: CUSTOMERS (FIRESTORE) ---------- */
+async function saveCustomer(){
+  const nameEl = $('#c_name');
+  if(!nameEl) return;
+  const name = nameEl.value.trim();
+  if(!name){ $('#c_msg').textContent='Συμπλήρωσε όνομα.'; return; }
+
+  const data = {
+    name,
+    phone: $('#c_phone').value.trim(),
+    email: $('#c_email').value.trim(),
+    address: $('#c_address').value.trim(),
+    notes: $('#c_notes').value.trim(),
+    createdAt: serverTimestamp()
+  };
+
+  if(!state.currentCustomerId){
+    const ref = await addDoc(collection(db,'customers'), data);
+    state.currentCustomerId = ref.id;
+    state.customers.unshift({id:ref.id, ...data, createdAt:new Date()});
+  }else{
+    const id = state.currentCustomerId;
+    await setDoc(doc(db,'customers',id), data, {merge:true});
+    const idx = state.customers.findIndex(c=>c.id===id);
+    if(idx>=0) state.customers[idx] = {id, ...state.customers[idx], ...data};
+  }
+  $('#c_msg').textContent='Αποθηκεύτηκε.';
+  renderCustomerList();
+  populateCustomerSelects();
+  renderDashboardSummary();
+}
+
+function clearCustomerForm(){
+  state.currentCustomerId = null;
+  const n = $('#c_name'); if(!n) return;
+  n.value='';
+  $('#c_phone').value='';
+  $('#c_email').value='';
+  $('#c_address').value='';
+  $('#c_notes').value='';
+  $('#c_msg').textContent='';
+}
+
+async function deleteCustomer(id){
+  if(!confirm('Διαγραφή πελάτη;'))return;
+  await deleteDoc(doc(db,'customers',id));
+  state.customers = state.customers.filter(c=>c.id!==id);
+  state.projects.forEach(p=>{ if(p.customerId===id) p.customerId=''; });
+  state.tasks.forEach(t=>{ if(t.customerId===id) t.customerId=''; });
+  state.studies.forEach(s=>{ if(s.customerId===id) s.customerId=''; });
+  clearCustomerForm();
+  renderCustomerList();
+  populateCustomerSelects();
+  renderDashboardSummary();
+}
+
+function renderCustomerList(){
+  const wrap = $('#c_list');
+  if(!wrap) return;
+  const searchEl = $('#c_search');
+  const q = (searchEl?.value || '').toLowerCase();
+  let arr = state.customers.slice();
+  if(q){
+    arr = arr.filter(c=>
+      (c.name||'').toLowerCase().includes(q) ||
+      (c.phone||'').toLowerCase().includes(q) ||
+      (c.address||'').toLowerCase().includes(q) ||
+      (c.email||'').toLowerCase().includes(q)
+    );
+  }
+  if(!arr.length){
+    wrap.textContent = 'Δεν υπάρχουν πελάτες.';
+    return;
+  }
+  let html = '<table><thead><tr><th>Όνομα</th><th>Τηλ</th><th>Διεύθυνση</th><th></th></tr></thead><tbody>';
+  arr.forEach(c=>{
+    html += `<tr>
+      <td>${c.name}</td>
+      <td>${c.phone||''}</td>
+      <td>${c.address||''}</td>
+      <td>
+        <span class="link" data-edit="${c.id}">Επεξ.</span> |
+        <span class="link" data-del="${c.id}">Διαγραφή</span>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  $$('#c_list [data-edit]').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.dataset.edit;
+      const c = state.customers.find(x=>x.id===id);
+      if(!c) return;
+      state.currentCustomerId = c.id;
+      $('#c_name').value=c.name;
+      $('#c_phone').value=c.phone||'';
+      $('#c_email').value=c.email||'';
+      $('#c_address').value=c.address||'';
+      $('#c_notes').value=c.notes||'';
+      $('#c_msg').textContent='Επεξεργασία πελάτη.';
+    };
+  });
+  $$('#c_list [data-del]').forEach(el=>{
+    el.onclick = ()=> deleteCustomer(el.dataset.del);
+  });
+}
+
+/* ---------- CRUD: PROJECTS ---------- */
+async function saveProject(){
+  const titleEl = $('#p_title');
+  if(!titleEl) return;
+  const title = titleEl.value.trim();
+  if(!title){ $('#p_msg').textContent='Συμπλήρωσε τίτλο έργου.'; return; }
+
+  const data = {
+    customerId: $('#p_customer').value || '',
+    title,
+    location: $('#p_location').value.trim(),
+    date: $('#p_date').value || '',
+    status: $('#p_status').value,
+    notes: $('#p_notes').value.trim(),
+    createdAt: serverTimestamp()
+  };
+
+  if(!state.currentProjectId){
+    const ref = await addDoc(collection(db,'projects'), data);
+    state.currentProjectId = ref.id;
+    state.projects.unshift({id:ref.id, ...data, createdAt:new Date()});
+  }else{
+    const id = state.currentProjectId;
+    await setDoc(doc(db,'projects',id), data, {merge:true});
+    const idx = state.projects.findIndex(p=>p.id===id);
+    if(idx>=0) state.projects[idx] = {id, ...state.projects[idx], ...data};
+  }
+  $('#p_msg').textContent='Αποθηκεύτηκε.';
+  renderProjectList();
+  populateCustomerSelects();
+  renderDashboardSummary();
+}
+
 function clearProjectForm(){
   state.currentProjectId=null;
   const t = $('#p_title'); if(!t) return;
@@ -608,26 +806,14 @@ function clearProjectForm(){
   $('#p_msg').textContent='';
 }
 
-function saveProject(){
-  const titleEl = $('#p_title');
-  if(!titleEl) return;
-  const title = titleEl.value.trim();
-  if(!title){ $('#p_msg').textContent='Συμπλήρωσε τίτλο έργου.'; return; }
-  const obj = {
-    id: state.currentProjectId || ('p_'+Date.now()),
-    customerId: $('#p_customer').value || '',
-    title,
-    location: $('#p_location').value.trim(),
-    date: $('#p_date').value || '',
-    status: $('#p_status').value,
-    notes: $('#p_notes').value.trim()
-  };
-  const idx = state.projects.findIndex(p=>p.id===obj.id);
-  if(idx>=0) state.projects[idx]=obj; else state.projects.push(obj);
-  state.currentProjectId=obj.id;
-  $('#p_msg').textContent='Αποθηκεύτηκε.';
-  saveState();
+async function deleteProject(id){
+  if(!confirm('Διαγραφή έργου;'))return;
+  await deleteDoc(doc(db,'projects',id));
+  state.projects = state.projects.filter(p=>p.id!==id);
+  clearProjectForm();
   renderProjectList();
+  populateCustomerSelects();
+  renderDashboardSummary();
 }
 
 function renderProjectList(){
@@ -686,73 +872,40 @@ function renderProjectList(){
     };
   });
   $$('#p_list [data-del]').forEach(el=>{
-    el.onclick=()=>{
-      const id = el.dataset.del;
-      if(!confirm('Διαγραφή έργου;'))return;
-      state.projects = state.projects.filter(p=>p.id!==id);
-      saveState();
-      clearProjectForm();
-      renderProjectList();
-    };
+    el.onclick=()=>deleteProject(el.dataset.del);
   });
 }
 
-/* TASKS PAGE */
-function renderTasksPage(){
-  return `
-    <div class="card">
-      <h2>Εργασίες</h2>
-      <div class="subtitle">Καθημερινές εργασίες, βλάβες, συντηρήσεις.</div>
-      <div class="row">
-        <div class="col">
-          <h3>Νέα / Επεξεργασία εργασίας</h3>
-          <label>Πελάτης</label>
-          <select id="t_customer"></select>
-          <label>Τίτλος εργασίας</label>
-          <input id="t_title" placeholder="π.χ. Service 24.000 BTU">
-          <label>Ημερομηνία</label>
-          <input id="t_date" type="date">
-          <label>Κατάσταση</label>
-          <select id="t_status">
-            <option value="open">Ανοιχτή</option>
-            <option value="inprogress">Σε εξέλιξη</option>
-            <option value="done">Ολοκληρωμένη</option>
-          </select>
-          <label>Σημειώσεις</label>
-          <textarea id="t_notes" placeholder="Τι έγινε, υλικά, ώρες εργασίας κτλ."></textarea>
-          <div style="margin-top:8px;">
-            <button class="btn small" id="t_save">Αποθήκευση</button>
-            <button class="btn secondary small" id="t_new">Νέα</button>
-          </div>
-          <div id="t_msg" class="muted" style="margin-top:4px;"></div>
-        </div>
-        <div class="col">
-          <div class="search-row">
-            <div>
-              <h3>Λίστα εργασιών</h3>
-              <span class="muted">Φίλτρο κατάστασης & αναζήτηση.</span>
-            </div>
-          </div>
-          <div class="row" style="margin-bottom:4px;">
-            <div style="flex:1;min-width:120px;">
-              <label>Κατάσταση</label>
-              <select id="t_filter">
-                <option value="all">Όλες</option>
-                <option value="open">Ανοιχτές</option>
-                <option value="inprogress">Σε εξέλιξη</option>
-                <option value="done">Ολοκληρωμένες</option>
-              </select>
-            </div>
-            <div style="flex:2;min-width:160px;">
-              <label>Αναζήτηση</label>
-              <input id="t_search" class="search-box" style="max-width:none;width:100%;" placeholder="Τίτλος, πελάτης, σημειώσεις...">
-            </div>
-          </div>
-          <div id="t_list" class="muted">Δεν υπάρχουν εργασίες.</div>
-        </div>
-      </div>
-    </div>
-  `;
+/* ---------- CRUD: TASKS ---------- */
+async function saveTask(){
+  const titleEl = $('#t_title');
+  if(!titleEl) return;
+  const title = titleEl.value.trim();
+  if(!title){ $('#t_msg').textContent='Συμπλήρωσε τίτλο εργασίας.'; return; }
+
+  const data = {
+    customerId: $('#t_customer').value || '',
+    title,
+    date: $('#t_date').value || '',
+    status: $('#t_status').value,
+    notes: $('#t_notes').value.trim(),
+    createdAt: serverTimestamp()
+  };
+
+  if(!state.currentTaskId){
+    const ref = await addDoc(collection(db,'tasks'), data);
+    state.currentTaskId = ref.id;
+    state.tasks.unshift({id:ref.id, ...data, createdAt:new Date()});
+  }else{
+    const id = state.currentTaskId;
+    await setDoc(doc(db,'tasks',id), data, {merge:true});
+    const idx = state.tasks.findIndex(t=>t.id===id);
+    if(idx>=0) state.tasks[idx] = {id, ...state.tasks[idx], ...data};
+  }
+  $('#t_msg').textContent='Αποθηκεύτηκε.';
+  renderTaskList();
+  populateCustomerSelects();
+  renderDashboardSummary();
 }
 
 function clearTaskForm(){
@@ -766,25 +919,13 @@ function clearTaskForm(){
   $('#t_msg').textContent='';
 }
 
-function saveTask(){
-  const titleEl = $('#t_title');
-  if(!titleEl) return;
-  const title = titleEl.value.trim();
-  if(!title){ $('#t_msg').textContent='Συμπλήρωσε τίτλο εργασίας.'; return; }
-  const obj = {
-    id: state.currentTaskId || ('t_'+Date.now()),
-    customerId: $('#t_customer').value || '',
-    title,
-    date: $('#t_date').value || '',
-    status: $('#t_status').value,
-    notes: $('#t_notes').value.trim()
-  };
-  const idx = state.tasks.findIndex(t=>t.id===obj.id);
-  if(idx>=0) state.tasks[idx]=obj; else state.tasks.push(obj);
-  state.currentTaskId=obj.id;
-  $('#t_msg').textContent='Αποθηκεύτηκε.';
-  saveState();
+async function deleteTask(id){
+  if(!confirm('Διαγραφή εργασίας;'))return;
+  await deleteDoc(doc(db,'tasks',id));
+  state.tasks = state.tasks.filter(t=>t.id!==id);
+  clearTaskForm();
   renderTaskList();
+  renderDashboardSummary();
 }
 
 function renderTaskList(){
@@ -842,57 +983,39 @@ function renderTaskList(){
     };
   });
   $$('#t_list [data-del]').forEach(el=>{
-    el.onclick=()=>{
-      const id = el.dataset.del;
-      if(!confirm('Διαγραφή εργασίας;'))return;
-      state.tasks = state.tasks.filter(t=>t.id!==id);
-      saveState();
-      clearTaskForm();
-      renderTaskList();
-    };
+    el.onclick=()=>deleteTask(el.dataset.del);
   });
 }
 
-/* STUDIES PAGE */
-function renderStudiesPage(){
-  return `
-    <div class="card">
-      <h2>Μελέτες κλιματισμού</h2>
-      <div class="subtitle">Καταγραφή μελετών, συνδεδεμένων με πελάτες και έργα.</div>
-      <div class="row">
-        <div class="col">
-          <h3>Νέα / Επεξεργασία μελέτης</h3>
-          <label>Τίτλος μελέτης</label>
-          <input id="s_title" placeholder="π.χ. Μελέτη διαμερίσματος 85m²">
-          <label>Πελάτης</label>
-          <select id="s_customer"></select>
-          <label>Σχετικό έργο (προαιρετικό)</label>
-          <select id="s_project"></select>
-          <label>Περίληψη / BTU / Παρατηρήσεις</label>
-          <textarea id="s_summary" placeholder="BTU ανά χώρο, μοντέλα κλιματιστικών, θέσεις μονάδων κτλ."></textarea>
-          <div style="margin-top:8px;">
-            <button class="btn small" id="s_save">Αποθήκευση</button>
-            <button class="btn secondary small" id="s_new">Νέα</button>
-          </div>
-          <div id="s_msg" class="muted" style="margin-top:4px;"></div>
-        </div>
-        <div class="col">
-          <div class="search-row">
-            <div>
-              <h3>Αρχείο μελετών</h3>
-              <span class="muted">Αναζήτηση με τίτλο, πελάτη ή έργο.</span>
-            </div>
-          </div>
-          <input id="s_search" class="search-box" placeholder="Τίτλος, πελάτης, έργο...">
-          <div id="s_list" class="muted">Δεν υπάρχουν μελέτες.</div>
-        </div>
-      </div>
-      <div style="margin-top:8px;" class="muted">
-        Για λεπτομερή σχεδίαση & BTU μπορείς να ανοίξεις τον Mouhtis AC Planner σε νέο tab.
-        <button class="btn secondary small" onclick="window.open('https://mouhtis.github.io/mouhtis-ac-planner/','_blank')">Άνοιγμα AC Planner</button>
-      </div>
-    </div>
-  `;
+/* ---------- CRUD: STUDIES ---------- */
+async function saveStudy(){
+  const titleEl = $('#s_title');
+  if(!titleEl) return;
+  const title = titleEl.value.trim();
+  if(!title){ $('#s_msg').textContent='Συμπλήρωσε τίτλο μελέτης.'; return; }
+
+  const data = {
+    title,
+    customerId: $('#s_customer').value || '',
+    projectId: $('#s_project').value || '',
+    summary: $('#s_summary').value.trim(),
+    createdAt: serverTimestamp()
+  };
+
+  if(!state.currentStudyId){
+    const ref = await addDoc(collection(db,'studies'), data);
+    state.currentStudyId = ref.id;
+    state.studies.unshift({id:ref.id, ...data, createdAt:new Date()});
+  }else{
+    const id = state.currentStudyId;
+    await setDoc(doc(db,'studies',id), data, {merge:true});
+    const idx = state.studies.findIndex(s=>s.id===id);
+    if(idx>=0) state.studies[idx] = {id, ...state.studies[idx], ...data};
+  }
+  $('#s_msg').textContent='Αποθηκεύτηκε.';
+  renderStudyList();
+  populateCustomerSelects();
+  renderDashboardSummary();
 }
 
 function clearStudyForm(){
@@ -905,24 +1028,13 @@ function clearStudyForm(){
   $('#s_msg').textContent='';
 }
 
-function saveStudy(){
-  const titleEl = $('#s_title');
-  if(!titleEl) return;
-  const title = titleEl.value.trim();
-  if(!title){ $('#s_msg').textContent='Συμπλήρωσε τίτλο μελέτης.'; return; }
-  const obj = {
-    id: state.currentStudyId || ('s_'+Date.now()),
-    title,
-    customerId: $('#s_customer').value || '',
-    projectId: $('#s_project').value || '',
-    summary: $('#s_summary').value.trim()
-  };
-  const idx = state.studies.findIndex(s=>s.id===obj.id);
-  if(idx>=0) state.studies[idx]=obj; else state.studies.push(obj);
-  state.currentStudyId=obj.id;
-  $('#s_msg').textContent='Αποθηκεύτηκε.';
-  saveState();
+async function deleteStudy(id){
+  if(!confirm('Διαγραφή μελέτης;'))return;
+  await deleteDoc(doc(db,'studies',id));
+  state.studies = state.studies.filter(s=>s.id!==id);
+  clearStudyForm();
   renderStudyList();
+  renderDashboardSummary();
 }
 
 function renderStudyList(){
@@ -975,49 +1087,11 @@ function renderStudyList(){
     };
   });
   $$('#s_list [data-del]').forEach(el=>{
-    el.onclick=()=>{
-      const id = el.dataset.del;
-      if(!confirm('Διαγραφή μελέτης;'))return;
-      state.studies = state.studies.filter(s=>s.id!==id);
-      saveState();
-      clearStudyForm();
-      renderStudyList();
-    };
+    el.onclick=()=>deleteStudy(el.dataset.del);
   });
 }
 
-/* SELECTS */
-function populateCustomerSelects(){
-  const customerSelectIds = ['p_customer','t_customer','s_customer'];
-  customerSelectIds.forEach(id=>{
-    const sel = $('#'+id);
-    if(!sel) return;
-    const prev = sel.value;
-    sel.innerHTML = '<option value="">— Επιλογή —</option>';
-    state.customers.forEach(c=>{
-      const opt = document.createElement('option');
-      opt.value=c.id;
-      opt.textContent=c.name;
-      sel.appendChild(opt);
-    });
-    if(prev) sel.value=prev;
-  });
-
-  const projectSelect = $('#s_project');
-  if(projectSelect){
-    const prev = projectSelect.value;
-    projectSelect.innerHTML='<option value="">— Χωρίς έργο —</option>';
-    state.projects.forEach(p=>{
-      const opt = document.createElement('option');
-      opt.value=p.id;
-      opt.textContent=p.title;
-      projectSelect.appendChild(opt);
-    });
-    if(prev) projectSelect.value=prev;
-  }
-}
-
-/* GLOBAL SEARCH */
+/* ---------- GLOBAL SEARCH ---------- */
 function performGlobalSearch(){
   const input = $('#globalSearch');
   const results = $('#globalResults');
@@ -1069,7 +1143,7 @@ function performGlobalSearch(){
   results.innerHTML = html;
 }
 
-/* PAGE RENDERER */
+/* ---------- PAGE RENDER ---------- */
 function renderPage(page){
   const container = $('#pageContainer');
   if(!container) return;
@@ -1130,39 +1204,26 @@ function renderPage(page){
   }
 }
 
-/* INIT */
-loadState();
-$$('.menu-btn').forEach(btn=>{
-  btn.onclick = ()=> setActivePage(btn.dataset.page);
-});
-renderPage('dashboard');
-const gs = $('#globalSearch');
-if(gs) gs.addEventListener('input', performGlobalSearch);
-</script>
+/* ---------- NAV ---------- */
+function setActivePage(page){
+  $$('.menu-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.page===page);
+  });
+  renderPage(page);
+}
 
-<!-- FIREBASE (έτοιμο για μελλοντική χρήση Firestore/Auth) -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-  import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+/* ---------- INIT ---------- */
+async function init(){
+  await loadStateFromFirestore();
+  $$('.menu-btn').forEach(btn=>{
+    btn.onclick = ()=> setActivePage(btn.dataset.page);
+  });
+  renderPage('dashboard');
+  const gs = $('#globalSearch');
+  if(gs) gs.addEventListener('input', performGlobalSearch);
+}
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAJlPDZktoQmDUIwQrCBsH_GLEhn5N6owE",
-    authDomain: "mouhtis-suite.firebaseapp.com",
-    projectId: "mouhtis-suite",
-    storageBucket: "mouhtis-suite.firebasestorage.app",
-    messagingSenderId: "1093547214312",
-    appId: "1:1093547214312:web:83cc116f17b031f2ef105d",
-    measurementId: "G-84HEW3XYX1"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const analytics = getAnalytics(app);
-
-  window._firebase = { app, db, auth };
+init();
 </script>
 
 </body>
