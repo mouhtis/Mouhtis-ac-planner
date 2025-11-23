@@ -334,7 +334,7 @@
 
 <!-- MAIN AREA -->
 <div class="main" id="mainContent">
-  <!-- θα γεμίζει από loadPage('dashboard') -->
+  <!-- γεμίζει από loadPage('dashboard') -->
 </div>
 
 <script>
@@ -488,7 +488,7 @@ async function deleteCustomer(id){
   }
 }
 
-/* ------------ TASKS CRUD ------------ */
+/* ------------ TASKS CRUD (με κόστος) ------------ */
 async function loadTasks(){
   try{
     const snap = await db.collection("tasks").orderBy("createdAt","desc").get();
@@ -497,6 +497,18 @@ async function loadTasks(){
   }catch(e){
     console.error("Error loading tasks", e);
   }
+}
+
+function calcTaskTotalLocal(){
+  const u = parseFloat($("#t_unitCost")?.value || "0") || 0;
+  const m = parseFloat($("#t_materialsCost")?.value || "0") || 0;
+  const h = parseFloat($("#t_laborHours")?.value || "0") || 0;
+  const r = parseFloat($("#t_laborRate")?.value || "0") || 0;
+  const labor = h * r;
+  const total = u + m + labor;
+  const el = $("#t_total_view");
+  if(el) el.textContent = `Συνολικό κόστος: ${total.toFixed(2)} € (Εργασία: ${labor.toFixed(2)} €)`;
+  return total;
 }
 
 function renderTaskList(){
@@ -520,7 +532,7 @@ function renderTaskList(){
     wrap.innerHTML = '<div class="muted">Δεν υπάρχουν εργασίες.</div>';
     return;
   }
-  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κόστος (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
   arr.forEach(t=>{
     const client = customers.find(c=>c.id===t.customerId);
     const typeLabel =
@@ -531,11 +543,13 @@ function renderTaskList(){
       t.status==="done" ? '<span class="pill green">Ολοκληρωμένη</span>' :
       t.status==="inprogress" ? '<span class="pill orange">Σε εξέλιξη</span>' :
       '<span class="pill red">Ανοιχτή</span>';
+    const costTotal = Number(t.costTotal || 0);
     html += `<tr>
       <td>${t.title||""}</td>
       <td>${client?client.name:"—"}</td>
       <td>${typeLabel}</td>
       <td>${t.date||""}</td>
+      <td>${costTotal.toFixed(2)}</td>
       <td>${pill}</td>
       <td><span class="link" data-task-del="${t.id}">Διαγραφή</span></td>
     </tr>`;
@@ -555,6 +569,13 @@ async function saveTask(){
   const date = $("#t_date").value;
   const status = $("#t_status").value;
   const notes = $("#t_notes").value.trim();
+  const unitCost = parseFloat($("#t_unitCost").value || "0") || 0;
+  const materialsCost = parseFloat($("#t_materialsCost").value || "0") || 0;
+  const laborHours = parseFloat($("#t_laborHours").value || "0") || 0;
+  const laborRate = parseFloat($("#t_laborRate").value || "0") || 0;
+  const laborCost = laborHours * laborRate;
+  const totalCost = unitCost + materialsCost + laborCost;
+
   const msgEl = $("#t_msg");
   if(!title){
     msgEl.textContent = "Συμπλήρωσε τίτλο εργασίας.";
@@ -569,6 +590,12 @@ async function saveTask(){
       date,
       status,
       notes,
+      unitCost,
+      materialsCost,
+      laborHours,
+      laborRate,
+      laborCost,
+      costTotal: totalCost,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     const ref = await db.collection("tasks").add(data);
@@ -589,6 +616,12 @@ function clearTaskForm(clearMsg=true){
   $("#t_date").value="";
   $("#t_status").value="open";
   $("#t_notes").value="";
+  $("#t_unitCost").value="";
+  $("#t_materialsCost").value="";
+  $("#t_laborHours").value="";
+  $("#t_laborRate").value="10";
+  const el = $("#t_total_view");
+  if(el) el.textContent = "Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)";
   if(clearMsg) $("#t_msg").textContent="";
 }
 
@@ -925,13 +958,17 @@ function computeDashboardStats(){
     }
   });
 
-  // tasks
+  // tasks (περιλαμβάνουν πλέον και κόστος)
   tasks.forEach(t=>{
     const d = parseISODate(t.date);
     if(sameMonthYear(d,now)) stats.tasksMonth++;
     if(t.status==="done") stats.tasksDone++;
     if(t.status==="open") stats.tasksOpen++;
     if(stats.tasksByType[t.type]!=null) stats.tasksByType[t.type]++; else stats.tasksByType.other++;
+
+    const c = Number(t.costTotal || 0);
+    if(sameMonthYear(d,now)) stats.monthlyExpenses += c;
+    if(sameYear(d,now)) stats.yearlyExpenses += c;
   });
 
   // projects / expenses
@@ -996,12 +1033,12 @@ function renderDashboard(){
 
     <div class="dashboard-grid" style="margin-bottom:16px;">
       <div class="stat-card">
-        <div class="stat-label">Έξοδα μήνα (έργα)</div>
+        <div class="stat-label">Συνολικά έξοδα μήνα (έργα + εργασίες)</div>
         <div class="stat-value">${stats.monthlyExpenses.toFixed(0)}€</div>
-        <div class="stat-sub">Υλικά, μονάδες, βοηθός, λοιπά</div>
+        <div class="stat-sub">Υλικά, μονάδες, βοηθός, εργασία, λοιπά</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Έξοδα έτους (έργα)</div>
+        <div class="stat-label">Συνολικά έξοδα έτους (έργα + εργασίες)</div>
         <div class="stat-value">${stats.yearlyExpenses.toFixed(0)}€</div>
         <div class="stat-sub">Από την αρχή του έτους</div>
       </div>
@@ -1148,7 +1185,7 @@ function loadPage(page){
   if(page==="tasks"){
     html = `
       <h1>Εργασίες</h1>
-      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις.</div>
+      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις, με παρακολούθηση κόστους.</div>
 
       <div class="card">
         <h3>Νέα εργασία</h3>
@@ -1175,6 +1212,21 @@ function loadPage(page){
           <option value="inprogress">Σε εξέλιξη</option>
           <option value="done">Ολοκληρωμένη</option>
         </select>
+
+        <h3 style="margin-top:10px;">Κόστη</h3>
+        <label>Κόστος μονάδας / εξοπλισμού (€)</label>
+        <input id="t_unitCost" type="number" step="0.01"/>
+
+        <label>Κόστος υλικών (€)</label>
+        <input id="t_materialsCost" type="number" step="0.01"/>
+
+        <label>Ώρες εργασίας</label>
+        <input id="t_laborHours" type="number" step="0.5"/>
+
+        <label>Ωρομίσθιο (€ / ώρα)</label>
+        <input id="t_laborRate" type="number" step="0.5" value="10"/>
+
+        <div id="t_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)</div>
 
         <label>Σημειώσεις</label>
         <textarea id="t_notes" placeholder="Περιγραφή εργασίας, υλικά, παρατηρήσεις."></textarea>
@@ -1208,6 +1260,12 @@ function loadPage(page){
     $("#t_clear_btn").onclick = ()=>clearTaskForm(true);
     $("#tasks_search").oninput = renderTaskList;
     $("#tasks_filter").onchange = renderTaskList;
+
+    ["t_unitCost","t_materialsCost","t_laborHours","t_laborRate"].forEach(id=>{
+      const el = $("#"+id);
+      if(el) el.oninput = calcTaskTotalLocal;
+    });
+    calcTaskTotalLocal();
   }
 
   if(page==="project"){
@@ -1249,7 +1307,7 @@ function loadPage(page){
         <label>Σημειώσεις</label>
         <textarea id="proj_notes" placeholder="Αναλυτική περιγραφή εργασιών, μοντέλα κλιματιστικών κλπ."></textarea>
 
-        <div id="proj_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 €</div>
+        <div id="proj_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Βοηθός: 0.00 €)</div>
 
         <div style="margin-top:10px;">
           <button class="btn small" id="proj_save_btn">Αποθήκευση</button>
@@ -1355,11 +1413,6 @@ $all(".menu-btn").forEach(btn=>{
     const page = btn.getAttribute("data-page");
     loadPage(page);
   });
-});
-
-// default για δοκιμές αν ξεπεράσει το login
-window.addEventListener("load", ()=>{
-  // δεν κάνουμε αυτόματο loadPage εδώ, γίνεται μετά το login
 });
 </script>
 
