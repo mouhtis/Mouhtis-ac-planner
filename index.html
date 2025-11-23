@@ -267,6 +267,7 @@
   }
   .stat-good{color:var(--good);}
   .stat-bad{color:var(--bad);}
+  .stat-neutral{color:#d97706;}
 
   .charts-grid{
     display:grid;
@@ -370,6 +371,7 @@ let projects = [];
 let studies = [];
 let profitChartInstance = null;
 let taskTypeChartInstance = null;
+let tasksFinanceChartInstance = null;
 
 /* ------------ HELPERS ------------ */
 function $(sel){return document.querySelector(sel);}
@@ -385,6 +387,11 @@ function sameMonthYear(d,ref){
 }
 function sameYear(d,ref){
   return d && d.getFullYear()===ref.getFullYear();
+}
+function getProfitClass(value){
+  if(value > 20) return "stat-good";
+  if(value < -20) return "stat-bad";
+  return "stat-neutral";
 }
 
 /* ------------ CUSTOMERS CRUD ------------ */
@@ -488,7 +495,7 @@ async function deleteCustomer(id){
   }
 }
 
-/* ------------ TASKS CRUD (με κόστος) ------------ */
+/* ------------ TASKS CRUD (με κόστος + τιμή) ------------ */
 async function loadTasks(){
   try{
     const snap = await db.collection("tasks").orderBy("createdAt","desc").get();
@@ -573,6 +580,7 @@ async function saveTask(){
   const materialsCost = parseFloat($("#t_materialsCost").value || "0") || 0;
   const laborHours = parseFloat($("#t_laborHours").value || "0") || 0;
   const laborRate = parseFloat($("#t_laborRate").value || "0") || 0;
+  const price = parseFloat($("#t_price").value || "0") || 0;
   const laborCost = laborHours * laborRate;
   const totalCost = unitCost + materialsCost + laborCost;
 
@@ -596,6 +604,7 @@ async function saveTask(){
       laborRate,
       laborCost,
       costTotal: totalCost,
+      price,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     const ref = await db.collection("tasks").add(data);
@@ -620,6 +629,7 @@ function clearTaskForm(clearMsg=true){
   $("#t_materialsCost").value="";
   $("#t_laborHours").value="";
   $("#t_laborRate").value="10";
+  $("#t_price").value="";
   const el = $("#t_total_view");
   if(el) el.textContent = "Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)";
   if(clearMsg) $("#t_msg").textContent="";
@@ -947,7 +957,16 @@ function computeDashboardStats(){
     totalStudies: studies.length,
     avgStudyArea: 0,
     monthlyExpenses: 0,
-    yearlyExpenses: 0
+    yearlyExpenses: 0,
+    revenueAll: 0,
+    costAll: 0,
+    profitAll: 0,
+    revenue30: 0,
+    cost30: 0,
+    profit30: 0,
+    revenue365: 0,
+    cost365: 0,
+    profit365: 0
   };
 
   customers.forEach(c=>{
@@ -965,28 +984,48 @@ function computeDashboardStats(){
     if(stats.tasksByType[t.type]!=null) stats.tasksByType[t.type]++; else stats.tasksByType.other++;
 
     const c = Number(t.costTotal || 0);
-    if(sameMonthYear(d,now)) stats.monthlyExpenses += c;
-    if(sameYear(d,now)) stats.yearlyExpenses += c;
+    const price = Number(t.price || 0);
+
+    stats.costAll += c;
+    stats.revenueAll += price;
+
+    if(d){
+      const diffDays = (now - d)/(1000*60*60*24);
+      if(diffDays >= 0 && diffDays <= 30){
+        stats.cost30 += c;
+        stats.revenue30 += price;
+      }
+      if(diffDays >= 0 && diffDays <= 365){
+        stats.cost365 += c;
+        stats.revenue365 += price;
+      }
+      if(sameMonthYear(d,now)) stats.monthlyExpenses += c;
+      if(sameYear(d,now)) stats.yearlyExpenses += c;
+    }
   });
 
-  let totalCost = 0;
-  let sumCost = 0;
+  let totalCostProjects = 0;
+  let sumCostProjects = 0;
   projects.forEach(p=>{
     const total = Number(p.costTotal||0);
-    sumCost += total;
+    sumCostProjects += total;
     if(total>stats.maxProjectCost) stats.maxProjectCost = total;
-    totalCost++;
+    totalCostProjects++;
     const d = parseISODate(p.date);
     if(sameMonthYear(d,now)) stats.monthlyExpenses += total;
     if(sameYear(d,now)) stats.yearlyExpenses += total;
   });
-  stats.avgProjectCost = totalCost? (sumCost/totalCost):0;
+  stats.avgProjectCost = totalCostProjects? (sumCostProjects/totalCostProjects):0;
 
   let areaSum = 0, areaCount=0;
   studies.forEach(s=>{
     if(s.area){ areaSum+=Number(s.area); areaCount++; }
   });
   stats.avgStudyArea = areaCount? (areaSum/areaCount):0;
+
+  stats.profitAll = stats.revenueAll - stats.costAll;
+  stats.profit30 = stats.revenue30 - stats.cost30;
+  stats.profit365 = stats.revenue365 - stats.cost365;
 
   return stats;
 }
@@ -999,6 +1038,31 @@ function renderDashboard(){
   main.innerHTML = `
     <h1>Πίνακας ελέγχου</h1>
     <div class="subtitle">Γενική εικόνα πελατών, εργασιών, έργων και κόστους.</div>
+
+    <div class="card">
+      <h3>Έσοδα / Έξοδα εργασιών</h3>
+      <div class="dashboard-grid" style="margin-bottom:8px;">
+        <div class="stat-card">
+          <div class="stat-label">Σύνολο</div>
+          <div class="stat-sub">Έσοδα: ${stats.revenueAll.toFixed(2)}€</div>
+          <div class="stat-sub">Έξοδα: ${stats.costAll.toFixed(2)}€</div>
+          <div class="stat-sub">Κέρδος: <span class="${getProfitClass(stats.profitAll)}">${stats.profitAll.toFixed(2)}€</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Τελευταίες 30 ημέρες</div>
+          <div class="stat-sub">Έσοδα: ${stats.revenue30.toFixed(2)}€</div>
+          <div class="stat-sub">Έξοδα: ${stats.cost30.toFixed(2)}€</div>
+          <div class="stat-sub">Κέρδος: <span class="${getProfitClass(stats.profit30)}">${stats.profit30.toFixed(2)}€</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Τελευταίοι 12 μήνες</div>
+          <div class="stat-sub">Έσοδα: ${stats.revenue365.toFixed(2)}€</div>
+          <div class="stat-sub">Έξοδα: ${stats.cost365.toFixed(2)}€</div>
+          <div class="stat-sub">Κέρδος: <span class="${getProfitClass(stats.profit365)}">${stats.profit365.toFixed(2)}€</span></div>
+        </div>
+      </div>
+      <canvas id="tasksFinanceChart" height="180"></canvas>
+    </div>
 
     <div class="dashboard-grid" style="margin-bottom:16px;">
       <div class="stat-card">
@@ -1052,8 +1116,45 @@ function renderDashboard(){
     </div>
   `;
 
+  drawTasksFinanceChart(stats);
   drawProfitChart();
   drawTaskTypeChart();
+}
+
+function drawTasksFinanceChart(stats){
+  const ctx = document.getElementById("tasksFinanceChart");
+  if(!ctx) return;
+  if(tasksFinanceChartInstance) tasksFinanceChartInstance.destroy();
+
+  const labels = ["Σύνολο","30 ημέρες","12 μήνες"];
+  const revenueData = [stats.revenueAll, stats.revenue30, stats.revenue365];
+  const costData = [stats.costAll, stats.cost30, stats.cost365];
+  const profitData = [stats.profitAll, stats.profit30, stats.profit365];
+
+  const profitColors = profitData.map(v=>{
+    if(v > 20) return "#16a34a";   // πράσινο
+    if(v < -20) return "#dc2626";  // κόκκινο
+    return "#f97316";              // πορτοκαλί/κίτρινο
+  });
+
+  tasksFinanceChartInstance = new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels,
+      datasets:[
+        {label:"Έσοδα (€)", data: revenueData},
+        {label:"Έξοδα (€)", data: costData},
+        {label:"Κέρδος (€)", data: profitData, backgroundColor: profitColors}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{position:"top"}},
+      scales:{
+        y:{beginAtZero:true}
+      }
+    }
+  });
 }
 
 function drawProfitChart(){
@@ -1181,7 +1282,7 @@ function loadPage(page){
   if(page==="tasks"){
     html = `
       <h1>Εργασίες</h1>
-      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις, με παρακολούθηση κόστους.</div>
+      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις, με παρακολούθηση κόστους & εσόδων.</div>
 
       <div class="card">
         <h3>Νέα εργασία</h3>
@@ -1223,6 +1324,9 @@ function loadPage(page){
         <input id="t_laborRate" type="number" step="0.5" value="10"/>
 
         <div id="t_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)</div>
+
+        <label>Τιμή προς πελάτη (€)</label>
+        <input id="t_price" type="number" step="0.01"/>
 
         <label>Σημειώσεις</label>
         <textarea id="t_notes" placeholder="Περιγραφή εργασίας, υλικά, παρατηρήσεις."></textarea>
