@@ -10,8 +10,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
-<!-- jsPDF για PDF export -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Chart.js για γραφήματα dashboard -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
   :root{
@@ -25,6 +25,8 @@
     --accent-soft:#dbeafe;
     --sidebar-bg:#0d1b2a;
     --sidebar-bg2:#1b263b;
+    --good:#16a34a;
+    --bad:#dc2626;
   }
 
   *{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
@@ -107,7 +109,7 @@
     border: none;
     border-radius: 8px;
     text-align: left;
-    cursor: button;
+    cursor: pointer;
     display:flex;
     align-items:center;
     gap:8px;
@@ -236,6 +238,56 @@
   .pill.red{background:#fee2e2;color:#b91c1c;}
   .pill.orange{background:#ffedd5;color:#9a3412;}
 
+  /* DASHBOARD */
+  .dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;
+  }
+  .stat-card{
+    background:var(--card);
+    border-radius:12px;
+    padding:12px 14px;
+    border:1px solid var(--border);
+    box-shadow:0 2px 6px rgba(15,23,42,0.04);
+  }
+  .stat-label{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+  .stat-value{
+    font-size:20px;
+    font-weight:700;
+  }
+  .stat-sub{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .stat-good{color:var(--good);}
+  .stat-bad{color:var(--bad);}
+
+  .charts-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:16px;
+  }
+  .chart-wrapper{
+    background:var(--card);
+    border-radius:12px;
+    padding:10px 10px 4px;
+    border:1px solid var(--border);
+    box-shadow:0 2px 6px rgba(15,23,42,0.04);
+  }
+  .chart-wrapper h3{
+    font-size:14px;
+    margin-bottom:6px;
+  }
+  canvas{
+    max-width:100%;
+  }
+
   @media(max-width: 800px){
     .sidebar{
       position:relative;
@@ -263,7 +315,10 @@
 <!-- SIDEBAR -->
 <div class="sidebar">
   <h2>Menu</h2>
-  <button class="menu-btn active" data-page="customers">
+  <button class="menu-btn active" data-page="dashboard">
+    <span class="icon">📊</span> Σύνοψη
+  </button>
+  <button class="menu-btn" data-page="customers">
     <span class="icon">👤</span> Πελάτες
   </button>
   <button class="menu-btn" data-page="tasks">
@@ -279,12 +334,7 @@
 
 <!-- MAIN AREA -->
 <div class="main" id="mainContent">
-  <h1>Mouhtis HVAC Suite</h1>
-  <div class="subtitle">Επίλεξε ενότητα από το αριστερό μενού.</div>
-  <div class="card">
-    <h3>Αρχική</h3>
-    <div class="muted">Εδώ θα εμφανίζεται σύνοψη όταν ολοκληρώσουμε όλες τις ενότητες.</div>
-  </div>
+  <!-- θα γεμίζει από loadPage('dashboard') -->
 </div>
 
 <script>
@@ -294,6 +344,7 @@ loginBtn.onclick = () => {
   const pass = document.getElementById("loginPass").value.trim();
   if (pass === "fgb0911+") {
     document.getElementById("loginScreen").style.display = "none";
+    loadPage("dashboard");
   } else {
     alert("Λάθος κωδικός");
   }
@@ -317,50 +368,23 @@ let customers = [];
 let tasks = [];
 let projects = [];
 let studies = [];
+let profitChartInstance = null;
+let taskTypeChartInstance = null;
 
 /* ------------ HELPERS ------------ */
 function $(sel){return document.querySelector(sel);}
 function $all(sel){return Array.from(document.querySelectorAll(sel));}
-
-/* ------------ PDF HEADER HELPERS ------------ */
-function addPdfHeader(doc, reportTitle) {
-  const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFont("helvetica", "normal");
-
-  // NeoClima (μεγαλύτερο)
-  doc.setFontSize(22);
-  doc.setTextColor(11,116,222);
-  const main = "NeoClima";
-  const sub = "Mouhtis HVAC Suite";
-  const mainWidth = doc.getTextWidth(main);
-  const subWidth = doc.getTextWidth(sub);
-  const maxWidth = Math.max(mainWidth, subWidth);
-  const baseX = (pageWidth - maxWidth)/2;
-
-  doc.text(main, baseX + (maxWidth-mainWidth)/2, 20);
-
-  // Mouhtis HVAC Suite (πιο μικρό ώστε να έχει περίπου ίδιο μήκος)
-  doc.setFontSize(14);
-  doc.text(sub, baseX + (maxWidth-subWidth)/2, 28);
-
-  // γραμμή
-  doc.setDrawColor(180);
-  doc.line(15, 34, pageWidth-15, 34);
-
-  // τίτλος αναφοράς
-  doc.setTextColor(0,0,0);
-  doc.setFontSize(12);
-  doc.text(reportTitle, 15, 44);
+function parseISODate(d){
+  if(!d) return null;
+  const parts = d.split("-");
+  if(parts.length!==3) return null;
+  return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
 }
-
-function ensureSpace(doc, y, add=20){
-  const pageHeight = doc.internal.pageSize.getHeight();
-  if(y+add > pageHeight-20){
-    doc.addPage();
-    addPdfHeader(doc, "Συνέχεια");
-    return 60;
-  }
-  return y;
+function sameMonthYear(d,ref){
+  return d && d.getMonth()===ref.getMonth() && d.getFullYear()===ref.getFullYear();
+}
+function sameYear(d,ref){
+  return d && d.getFullYear()===ref.getFullYear();
 }
 
 /* ------------ CUSTOMERS CRUD ------------ */
@@ -399,10 +423,7 @@ function renderCustomerList(){
       <td>${c.phone||""}</td>
       <td>${c.area||""}</td>
       <td>${c.address||""}</td>
-      <td>
-        <span class="link" data-del="${c.id}">Διαγραφή</span> |
-        <span class="link" data-pdf="${c.id}">PDF</span>
-      </td>
+      <td><span class="link" data-del="${c.id}">Διαγραφή</span></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -410,9 +431,6 @@ function renderCustomerList(){
 
   $all('[data-del]').forEach(el=>{
     el.onclick = ()=> deleteCustomer(el.getAttribute('data-del'));
-  });
-  $all('[data-pdf]').forEach(el=>{
-    el.onclick = ()=> exportCustomerPDF(el.getAttribute('data-pdf'));
   });
 }
 
@@ -879,128 +897,206 @@ function fillProjectSelect(selectId){
   if(prev) sel.value=prev;
 }
 
-/* ------------ EXPORT PDF ΓΙΑ ΠΕΛΑΤΕΣ ------------ */
-function exportCustomerPDF(customerId){
-  if(!window.jspdf || !window.jspdf.jsPDF){
-    alert("Το PDF module δεν φορτώθηκε.");
-    return;
-  }
-  const c = customers.find(x=>x.id===customerId);
-  if(!c){
-    alert("Δεν βρέθηκε ο πελάτης.");
-    return;
-  }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+/* ------------ DASHBOARD STATS ------------ */
+function computeDashboardStats(){
+  const now = new Date();
+  const stats = {
+    totalCustomers: customers.length,
+    newCustomersMonth: 0,
+    totalTasks: tasks.length,
+    tasksMonth: 0,
+    tasksDone: 0,
+    tasksOpen: 0,
+    tasksByType: {installation:0,fault:0,maintenance:0,other:0},
+    totalProjects: projects.length,
+    avgProjectCost: 0,
+    maxProjectCost: 0,
+    totalStudies: studies.length,
+    avgStudyArea: 0,
+    monthlyExpenses: 0,
+    yearlyExpenses: 0
+  };
 
-  addPdfHeader(doc, "Αναφορά πελάτη");
-
-  let y = 60;
-  doc.setFont("helvetica","normal");
-  doc.setFontSize(13);
-  doc.text("Στοιχεία πελάτη", 15, y); y += 6;
-
-  doc.setFontSize(11);
-  const lines = [
-    `Όνομα: ${c.name || ""}`,
-    `Τηλέφωνο: ${c.phone || ""}`,
-    `Email: ${c.email || ""}`,
-    `Περιοχή: ${c.area || ""}`,
-    `Διεύθυνση: ${c.address || ""}`
-  ];
-  lines.forEach(line=>{
-    y = ensureSpace(doc,y,8);
-    doc.text(line, 20, y);
-    y += 6;
+  // new customers this month
+  customers.forEach(c=>{
+    if(c.createdAt && c.createdAt.toDate){
+      const d = c.createdAt.toDate();
+      if(sameMonthYear(d,now)) stats.newCustomersMonth++;
+    }
   });
 
-  if(c.notes){
-    y = ensureSpace(doc,y,10);
-    doc.setFontSize(12);
-    doc.text("Σχόλια:", 15, y); y += 6;
-    doc.setFontSize(11);
-    const noteLines = doc.splitTextToSize(c.notes, 170);
-    noteLines.forEach(l=>{
-      y = ensureSpace(doc,y,8);
-      doc.text(l, 20, y);
-      y += 5;
-    });
-  }
+  // tasks
+  tasks.forEach(t=>{
+    const d = parseISODate(t.date);
+    if(sameMonthYear(d,now)) stats.tasksMonth++;
+    if(t.status==="done") stats.tasksDone++;
+    if(t.status==="open") stats.tasksOpen++;
+    if(stats.tasksByType[t.type]!=null) stats.tasksByType[t.type]++; else stats.tasksByType.other++;
+  });
 
-  // Σχετικές εργασίες
-  const custTasks = tasks.filter(t=>t.customerId===customerId);
-  if(custTasks.length){
-    y = ensureSpace(doc,y,14);
-    doc.setFontSize(13);
-    doc.text("Σχετικές εργασίες", 15, y); y += 6;
-    doc.setFontSize(11);
-    custTasks.forEach((t,idx)=>{
-      y = ensureSpace(doc,y,12);
-      doc.text(`${idx+1}. ${t.title || ""}`, 20, y); y+=5;
-      const clientType =
-        t.type==="installation" ? "Εγκατάσταση" :
-        t.type==="fault" ? "Βλάβη" :
-        t.type==="maintenance" ? "Συντήρηση" : "Άλλο";
-      doc.text(`   Τύπος: ${clientType} | Ημ/νία: ${t.date || ""} | Κατάσταση: ${t.status || ""}`, 20, y); y+=5;
-      if(t.notes){
-        const tNotes = doc.splitTextToSize(`   Σημειώσεις: ${t.notes}`, 170);
-        tNotes.forEach(l=>{
-          y = ensureSpace(doc,y,8);
-          doc.text(l, 20, y); y+=4;
-        });
-      }
-    });
-  }
+  // projects / expenses
+  let totalCost = 0;
+  let sumCost = 0;
+  projects.forEach(p=>{
+    const total = Number(p.costTotal||0);
+    sumCost += total;
+    if(total>stats.maxProjectCost) stats.maxProjectCost = total;
+    totalCost++;
+    const d = parseISODate(p.date);
+    if(sameMonthYear(d,now)) stats.monthlyExpenses += total;
+    if(sameYear(d,now)) stats.yearlyExpenses += total;
+  });
+  stats.avgProjectCost = totalCost? (sumCost/totalCost):0;
 
-  // Σχετικά έργα
-  const custProjects = projects.filter(p=>p.customerId===customerId);
-  if(custProjects.length){
-    y = ensureSpace(doc,y,14);
-    doc.setFontSize(13);
-    doc.text("Σχετικά έργα", 15, y); y += 6;
-    doc.setFontSize(11);
-    custProjects.forEach((p,idx)=>{
-      y = ensureSpace(doc,y,12);
-      const total = Number(p.costTotal || 0).toFixed(2);
-      doc.text(`${idx+1}. ${p.title || ""}`, 20, y); y+=5;
-      doc.text(`   Ημ/νία: ${p.date || ""} | Σύνολο: ${total} €`, 20, y); y+=5;
-      if(p.location){
-        doc.text(`   Τοποθεσία: ${p.location}`, 20, y); y+=5;
-      }
-    });
-  }
+  // studies
+  let areaSum = 0, areaCount=0;
+  studies.forEach(s=>{
+    if(s.area){ areaSum+=Number(s.area); areaCount++; }
+  });
+  stats.avgStudyArea = areaCount? (areaSum/areaCount):0;
 
-  // Σχετικές μελέτες
-  const custStudies = studies.filter(s=>s.customerId===customerId);
-  if(custStudies.length){
-    y = ensureSpace(doc,y,14);
-    doc.setFontSize(13);
-    doc.text("Σχετικές μελέτες κλιματισμού", 15, y); y += 6;
-    doc.setFontSize(11);
-    custStudies.forEach((s,idx)=>{
-      y = ensureSpace(doc,y,12);
-      doc.text(`${idx+1}. ${s.title || ""}`, 20, y); y+=5;
-      if(s.area){
-        doc.text(`   Εμβαδόν: ${s.area} m², Χρήση: ${s.usage || ""}`, 20, y); y+=5;
-      }
-      if(s.summary){
-        const sumLines = doc.splitTextToSize(`   Σύνοψη: ${s.summary}`, 170);
-        sumLines.forEach(l=>{
-          y = ensureSpace(doc,y,8);
-          doc.text(l, 20, y); y+=4;
-        });
-      }
-    });
-  }
+  return stats;
+}
 
-  const safeName = (c.name || "pelatis").replace(/[^A-Za-z0-9Α-Ωα-ω]+/g,"_");
-  doc.save(`pelatis_${safeName}.pdf`);
+/* ------------ DASHBOARD RENDER ------------ */
+function renderDashboard(){
+  const main = $("#mainContent");
+  const stats = computeDashboardStats();
+
+  main.innerHTML = `
+    <h1>Πίνακας ελέγχου</h1>
+    <div class="subtitle">Γενική εικόνα πελατών, εργασιών, έργων και κόστους.</div>
+
+    <div class="dashboard-grid" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="stat-label">Συνολικοί πελάτες</div>
+        <div class="stat-value">${stats.totalCustomers}</div>
+        <div class="stat-sub">Νέοι πελάτες αυτόν τον μήνα: <span class="stat-good">${stats.newCustomersMonth}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Εργασίες</div>
+        <div class="stat-value">${stats.totalTasks}</div>
+        <div class="stat-sub">
+          Μήνα: ${stats.tasksMonth} • Ολοκληρωμένες: <span class="stat-good">${stats.tasksDone}</span> • Ανοιχτές: <span class="stat-bad">${stats.tasksOpen}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Έργα</div>
+        <div class="stat-value">${stats.totalProjects}</div>
+        <div class="stat-sub">
+          Μ.ο. κόστους: ${stats.avgProjectCost.toFixed(0)}€ • Μέγιστο: ${stats.maxProjectCost.toFixed(0)}€
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Μελέτες κλιματισμού</div>
+        <div class="stat-value">${stats.totalStudies}</div>
+        <div class="stat-sub">Μ.ο. εμβαδού: ${stats.avgStudyArea.toFixed(1)} m²</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="stat-label">Έξοδα μήνα (έργα)</div>
+        <div class="stat-value">${stats.monthlyExpenses.toFixed(0)}€</div>
+        <div class="stat-sub">Υλικά, μονάδες, βοηθός, λοιπά</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Έξοδα έτους (έργα)</div>
+        <div class="stat-value">${stats.yearlyExpenses.toFixed(0)}€</div>
+        <div class="stat-sub">Από την αρχή του έτους</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-wrapper">
+        <h3>Έξοδα έργων ανά μήνα (έτος)</h3>
+        <canvas id="profitChart" height="180"></canvas>
+      </div>
+      <div class="chart-wrapper">
+        <h3>Κατανομή εργασιών ανά τύπο</h3>
+        <canvas id="taskTypeChart" height="180"></canvas>
+      </div>
+    </div>
+  `;
+
+  drawProfitChart();
+  drawTaskTypeChart();
+}
+
+function drawProfitChart(){
+  const ctx = document.getElementById("profitChart");
+  if(!ctx) return;
+  if(profitChartInstance) profitChartInstance.destroy();
+  const now = new Date();
+  const year = now.getFullYear();
+  const labels = ["Ιαν","Φεβ","Μαρ","Απρ","Μαι","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
+  const data = new Array(12).fill(0);
+  projects.forEach(p=>{
+    const d = parseISODate(p.date);
+    if(d && d.getFullYear()===year){
+      const m = d.getMonth();
+      data[m] += Number(p.costTotal||0);
+    }
+  });
+  profitChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets:[{
+        label:"Έξοδα έργων (€)",
+        data,
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{beginAtZero:true}
+      }
+    }
+  });
+}
+
+function drawTaskTypeChart(){
+  const ctx = document.getElementById("taskTypeChart");
+  if(!ctx) return;
+  if(taskTypeChartInstance) taskTypeChartInstance.destroy();
+  const counts = {installation:0,fault:0,maintenance:0,other:0};
+  tasks.forEach(t=>{
+    if(counts[t.type]!=null) counts[t.type]++; else counts.other++;
+  });
+  const labels = ["Εγκατάσταση","Βλάβη","Συντήρηση","Άλλο"];
+  const data = [
+    counts.installation,
+    counts.fault,
+    counts.maintenance,
+    counts.other
+  ];
+  taskTypeChartInstance = new Chart(ctx,{
+    type:"doughnut",
+    data:{
+      labels,
+      datasets:[{data}]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:"bottom"}
+      }
+    }
+  });
 }
 
 /* ------------ PAGE RENDERING ------------ */
 function loadPage(page){
   const main = document.getElementById("mainContent");
   let html = "";
+
+  if(page==="dashboard"){
+    Promise.all([loadCustomers(), loadTasks(), loadProjects(), loadStudies()]).then(()=>{
+      renderDashboard();
+    });
+  }
 
   if(page==="customers"){
     html = `
@@ -1047,10 +1143,6 @@ function loadPage(page){
     document.getElementById("customers_search").oninput = renderCustomerList;
 
     loadCustomers();
-    // Φορτώνουμε και τα άλλα ώστε να υπάρχουν για PDF
-    loadTasks();
-    loadProjects();
-    loadStudies();
   }
 
   if(page==="tasks"){
@@ -1263,6 +1355,11 @@ $all(".menu-btn").forEach(btn=>{
     const page = btn.getAttribute("data-page");
     loadPage(page);
   });
+});
+
+// default για δοκιμές αν ξεπεράσει το login
+window.addEventListener("load", ()=>{
+  // δεν κάνουμε αυτόματο loadPage εδώ, γίνεται μετά το login
 });
 </script>
 
