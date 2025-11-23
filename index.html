@@ -1,786 +1,236 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mouhtis HVAC Suite</title>
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#f3f4f6;
-      --bg-alt:#eef1f6;
-      --card:#ffffff;
-      --accent:#2563eb;
-      --accent-soft:#dbeafe;
-      --accent-dark:#1d4ed8;
-      --muted:#6b7280;
-      --border:#e5e7eb;
-      --sidebar-bg:#020617;
-      --sidebar-active:#111827;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mouhtis HVAC Suite</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f5f6fa;
+    color: #222;
+  }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 230px;
+    height: 100vh;
+    background: #0d1b2a;
+    color: white;
+    padding-top: 20px;
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+
+  .menu-btn {
+    width: 90%;
+    margin: 8px auto;
+    padding: 12px;
+    background: #1b263b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .menu-btn:hover {
+    background: #415a77;
+  }
+
+  /* ---------- MAIN AREA ---------- */
+  .main {
+    margin-left: 250px;
+    padding: 20px;
+  }
+
+  h1 {
+    margin-top: 0;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  }
+
+  /* ---------- BUTTONS ---------- */
+  .btn {
+    padding: 10px 18px;
+    background: #e0b100;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    margin: 5px;
+    font-weight: bold;
+  }
+  .btn:hover {
+    background: #c89b00;
+  }
+
+  /* ---------- SEARCH ---------- */
+  .search-box {
+    padding: 12px;
+    width: 60%;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+  }
+
+  /* ---------- LISTS ---------- */
+  .list-item {
+    padding: 12px;
+    background: #f1f1f1;
+    border-radius: 8px;
+    margin: 6px 0;
+  }
+
+  @media(max-width: 900px){
+    .sidebar {
+      width: 180px;
     }
-    body.dark{
-      --bg:#020617;
-      --bg-alt:#020617;
-      --card:#020617;
-      --accent:#38bdf8;
-      --accent-soft:#0f172a;
-      --accent-dark:#0ea5e9;
-      --muted:#9ca3af;
-      --border:#1f2937;
-      --sidebar-bg:#000000;
-      --sidebar-active:#020617;
-      color:#e5e7eb;
+    .main {
+      margin-left: 200px;
     }
-    *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;}
-    body{margin:0;background:var(--bg);color:#111;}
-    header{
-      position:sticky;top:0;z-index:20;
-      display:flex;align-items:center;justify-content:space-between;
-      padding:10px 20px;
-      background:rgba(255,255,255,0.92);
-      backdrop-filter:blur(10px);
-      border-bottom:1px solid var(--border);
+  }
+
+  @media(max-width: 600px){
+    .sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
     }
-    body.dark header{
-      background:rgba(15,23,42,0.94);
+    .main {
+      margin-left: 0;
     }
-    header h1{margin:0;font-size:18px;font-weight:600;}
-    header .subtitle{font-size:12px;color:var(--muted);}
-    .header-actions{display:flex;gap:8px;align-items:center;}
-    .layout{display:flex;min-height:calc(100vh - 56px);}
-    .sidebar{
-      width:240px;background:var(--sidebar-bg);color:#e5e7eb;
-      padding:14px 10px;display:flex;flex-direction:column;gap:8px;
-    }
-    .brand{
-      font-size:14px;font-weight:600;margin-bottom:2px;
-      padding:6px 10px;color:#e5e7eb;opacity:.9;
-    }
-    .nav-btn{
-      display:flex;align-items:center;width:100%;
-      border:none;background:transparent;
-      color:#e5e7eb;text-align:left;
-      padding:8px 10px;border-radius:10px;
-      font-size:14px;margin-bottom:2px;cursor:pointer;
-      transition:background .15s, color .15s;
-    }
-    .nav-btn:hover{background:rgba(148,163,184,0.22);}
-    .nav-btn.active{
-      background:var(--sidebar-active);
-      box-shadow:0 0 0 1px rgba(148,163,184,0.3);
-    }
-    .nav-btn span.icon{width:20px;margin-right:8px;text-align:center;font-size:15px;}
-    main{flex:1;padding:18px 20px;overflow:auto;}
-    .cards{
-      display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px;
-    }
-    .card{
-      background:var(--card);border-radius:16px;
-      border:1px solid var(--border);
-      padding:12px 14px;flex:1;min-width:230px;
-      box-shadow:0 10px 25px rgba(15,23,42,0.04);
-    }
-    body.dark .card,body.dark .panel{
-      box-shadow:0 14px 35px rgba(0,0,0,0.6);
-    }
-    .card h3{margin:0 0 6px 0;font-size:15px;font-weight:600;}
-    .card p{margin:0;font-size:13px;color:var(--muted);}
-    .btn{
-      border:none;border-radius:999px;padding:7px 14px;
-      font-size:13px;font-weight:500;cursor:pointer;
-      background:var(--accent);color:#fff;
-      transition:background .15s,box-shadow .15s,transform .05s;
-    }
-    .btn:hover{background:var(--accent-dark);box-shadow:0 8px 18px rgba(37,99,235,0.25);transform:translateY(-1px);}
-    .btn:active{transform:translateY(0);}
-    .btn.secondary{
-      background:#fff;color:var(--accent);
-      border:1px solid var(--accent-soft);
-      box-shadow:none;
-    }
-    body.dark .btn.secondary{
-      background:transparent;
-      color:var(--accent);
-    }
-    .btn.secondary:hover{
-      background:var(--accent-soft);
-      box-shadow:0 4px 10px rgba(148,163,184,0.25);
-    }
-    body.dark .btn.secondary:hover{
-      background:rgba(15,23,42,0.8);
-    }
-    .btn.small{padding:5px 10px;font-size:12px;}
-    .btn.ghost{
-      background:transparent;
-      color:var(--muted);
-      border:1px solid var(--border);
-      box-shadow:none;
-    }
-    body.dark .btn.ghost{
-      color:#e5e7eb;
-      background:rgba(15,23,42,0.8);
-    }
-    .btn.ghost:hover{
-      background:var(--accent-soft);
-      color:var(--accent-dark);
-    }
-    body.dark .btn.ghost:hover{
-      background:#0f172a;
-    }
-    .section-title{
-      display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
-    }
-    .section-title h2{margin:0;font-size:18px;font-weight:600;}
-    .section-title span{font-size:12px;color:var(--muted);}
-    .grid{
-      display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:14px;
-    }
-    .panel{
-      background:var(--card);border-radius:16px;
-      border:1px solid var(--border);padding:12px 14px;
-      box-shadow:0 10px 25px rgba(15,23,42,0.03);
-    }
-    .panel h3{margin:0 0 8px 0;font-size:15px;font-weight:600;}
-    label{
-      display:block;font-size:12px;color:var(--muted);
-      margin-top:6px;margin-bottom:2px;
-    }
-    input,textarea,select{
-      width:100%;padding:7px 9px;border-radius:10px;
-      border:1px solid var(--border);font-size:13px;
-      outline:none;background:#f9fafb;
-      transition:border .12s,background .12s,box-shadow .12s;
-      color:inherit;
-    }
-    body.dark input,body.dark textarea,body.dark select{
-      background:#020617;border-color:#1f2937;
-    }
-    input:focus,textarea:focus,select:focus{
-      border-color:var(--accent);
-      background:#fff;
-      box-shadow:0 0 0 1px rgba(37,99,235,0.25);
-    }
-    body.dark input:focus,body.dark textarea:focus,body.dark select:focus{
-      background:#020617;
-    }
-    textarea{resize:vertical;min-height:70px;}
-    table{
-      width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;
-    }
-    th,td{padding:7px 5px;border-bottom:1px solid #f1f5f9;text-align:left;}
-    body.dark th,body.dark td{
-      border-bottom:1px solid #111827;
-    }
-    th{font-size:12px;color:var(--muted);font-weight:500;}
-    .tag{
-      display:inline-flex;align-items:center;border-radius:999px;
-      background:#eef2ff;padding:2px 8px;font-size:11px;color:#3730a3;
-      margin-right:4px;
-    }
-    .pill{
-      border-radius:999px;padding:2px 9px;font-size:11px;font-weight:500;
-      display:inline-block;
-    }
-    .pill.green{background:#dcfce7;color:#166534;}
-    .pill.red{background:#fee2e2;color:#b91c1c;}
-    .pill.orange{background:#ffedd5;color:#9a3412;}
-    .muted{color:var(--muted);font-size:12px;}
-    .link{color:var(--accent);cursor:pointer;font-size:12px;text-decoration:none;}
-    .link:hover{text-decoration:underline;}
-    .toolbar-row{
-      display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;align-items:center;
-    }
-    select.inline-select{width:auto;min-width:130px;}
-    @media(max-width:900px){
-      header{padding:8px 12px;}
-      .layout{flex-direction:column;}
-      .sidebar{
-        width:100%;flex-direction:row;overflow-x:auto;
-        padding:8px 6px;gap:4px;
-      }
-      .brand{display:none;}
-      .nav-btn{white-space:nowrap;justify-content:center;font-size:13px;}
-      .grid{grid-template-columns:1fr;}
-      main{padding:14px 10px 20px;}
-    }
-  </style>
+  }
+</style>
+
 </head>
 <body>
-<header>
-  <div>
-    <h1>Mouhtis HVAC Suite</h1>
-    <div class="subtitle">Διαχείριση έργων, πελατών, εγκαταστάσεων & AC Planner</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>Mouhtis Tools</h2>
+
+  <button class="menu-btn" onclick="loadPage('dashboard')">📊 Dashboard</button>
+  <button class="menu-btn" onclick="loadPage('customers')">👤 Πελάτες</button>
+  <button class="menu-btn" onclick="loadPage('projects')">📁 Έργα</button>
+  <button class="menu-btn" onclick="loadPage('tasks')">🛠️ Εργασίες</button>
+  <button class="menu-btn" onclick="loadPage('studies')">📐 Μελέτες</button>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main" id="mainContent">
+  <h1>Dashboard</h1>
+
+  <div class="card">
+    <h3>Σύνοψη</h3>
+    <p>Πελάτες: 0</p>
+    <p>Έργα: 0</p>
+    <p>Εργασίες: 0</p>
+    <p>Ανοιχτές συντηρήσεις: 0</p>
   </div>
-  <div class="header-actions">
-    <button class="btn small ghost" id="themeToggle">Dark mode</button>
-    <button class="btn small" id="openAcPlanner">Άνοιγμα AC Planner</button>
+
+  <div class="card">
+    <h3>Γρήγορες ενέργειες</h3>
+    <button class="btn" onclick="alert('Νέος πελάτης')">Νέος πελάτης</button>
+    <button class="btn" onclick="alert('Νέο έργο')">Νέο έργο</button>
+    <button class="btn" onclick="alert('Νέα εργασία')">Νέα εργασία</button>
+    <button class="btn" onclick="alert('Νέα μελέτη')">Νέα μελέτη</button>
   </div>
-</header>
-
-<div class="layout">
-  <aside class="sidebar">
-    <div class="brand">Mouhtis Tools</div>
-    <button class="nav-btn active" data-view="dashboard">
-      <span class="icon">🏠</span> Dashboard
-    </button>
-    <button class="nav-btn" data-view="clients">
-      <span class="icon">👤</span> Πελάτες
-    </button>
-    <button class="nav-btn" data-view="projects">
-      <span class="icon">📋</span> Έργα
-    </button>
-    <button class="nav-btn" data-view="maintenance">
-      <span class="icon">🛠️</span> Συντηρήσεις
-    </button>
-  </aside>
-
-  <main>
-    <!-- DASHBOARD -->
-    <section id="view-dashboard">
-      <div class="section-title">
-        <h2>Dashboard</h2>
-        <span id="todayLabel"></span>
-      </div>
-
-      <div class="cards">
-        <div class="card">
-          <h3>Σύνοψη</h3>
-          <p>
-            Πελάτες: <strong id="statClients">0</strong><br>
-            Έργα: <strong id="statProjects">0</strong><br>
-            Ανοιχτές συντηρήσεις: <strong id="statMaint">0</strong>
-          </p>
-        </div>
-        <div class="card">
-          <h3>Γρήγορες ενέργειες</h3>
-          <p>
-            <button class="btn small" data-open="clients">Νέος πελάτης</button>
-            <button class="btn small" data-open="projects">Νέο έργο</button>
-            <button class="btn small" data-open="maintenance">Νέα συντήρηση</button>
-          </p>
-        </div>
-        <div class="card">
-          <h3>Σύνδεση με AC Planner</h3>
-          <p class="muted">
-            Χρησιμοποίησε το Mouhtis AC Planner για υπολογισμό BTU και τοποθέτηση μονάδων.
-          </p>
-          <button class="btn secondary small" id="openAcPlanner2">Άνοιγμα AC Planner</button>
-        </div>
-      </div>
-
-      <div class="grid">
-        <div class="panel">
-          <h3>Επόμενες συντηρήσεις</h3>
-          <div id="dashMaint" class="muted">Δεν υπάρχουν προγραμματισμένες συντηρήσεις.</div>
-        </div>
-        <div class="panel">
-          <h3>Πρόσφατα έργα</h3>
-          <div id="dashProjects" class="muted">Δεν υπάρχουν καταχωρημένα έργα.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CLIENTS -->
-    <section id="view-clients" style="display:none">
-      <div class="section-title">
-        <h2>Πελάτες</h2>
-        <span>Καταχώρηση στοιχείων πελατών & χώρων</span>
-      </div>
-      <div class="grid">
-        <div class="panel">
-          <h3>Νέος / Επεξεργασία πελάτη</h3>
-          <label>Ονοματεπώνυμο</label>
-          <input id="cl-name" placeholder="π.χ. Γιάννης Παπαδόπουλος" />
-          <label>Τηλέφωνο</label>
-          <input id="cl-phone" placeholder="69xxxxxxxx" />
-          <label>Email</label>
-          <input id="cl-email" placeholder="example@mail.com" />
-          <label>Διεύθυνση</label>
-          <input id="cl-address" placeholder="Οδός, αριθμός, πόλη" />
-          <label>Σημειώσεις</label>
-          <textarea id="cl-notes" placeholder="Είδος χώρου, ώρες λειτουργίας κλπ."></textarea>
-          <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn small" id="cl-save">Αποθήκευση</button>
-            <button class="btn secondary small" id="cl-clear">Καθαρισμός</button>
-          </div>
-          <div id="cl-msg" class="muted" style="margin-top:6px;"></div>
-        </div>
-        <div class="panel">
-          <h3>Λίστα πελατών</h3>
-          <div id="clientsTableWrap" class="muted">Δεν υπάρχουν πελάτες ακόμη.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- PROJECTS -->
-    <section id="view-projects" style="display:none">
-      <div class="section-title">
-        <h2>Έργα</h2>
-        <span>Διαχείριση έργων εγκατάστασης / συντήρησης</span>
-      </div>
-      <div class="grid">
-        <div class="panel">
-          <h3>Νέο / Επεξεργασία έργου</h3>
-          <label>Πελάτης</label>
-          <select id="pr-client"></select>
-          <label>Τίτλος έργου</label>
-          <input id="pr-title" placeholder="π.χ. Εγκατάσταση 2x12.000 BTU" />
-          <label>Τοποθεσία</label>
-          <input id="pr-location" placeholder="π.χ. Διαμέρισμα Τσιμισκή 12" />
-          <label>Κατηγορία</label>
-          <select id="pr-type">
-            <option value="install">Εγκατάσταση</option>
-            <option value="service">Service / Βλάβη</option>
-            <option value="maintenance">Προληπτική συντήρηση</option>
-          </select>
-          <label>Ημερομηνία</label>
-          <input id="pr-date" type="date" />
-          <label>Κατάσταση</label>
-          <select id="pr-status">
-            <option value="open">Ανοιχτό</option>
-            <option value="inprogress">Σε εξέλιξη</option>
-            <option value="done">Ολοκληρωμένο</option>
-          </select>
-          <label>Σημειώσεις / εξοπλισμός</label>
-          <textarea id="pr-notes" placeholder="Μοντέλα κλιματιστικών, αεραγωγοί, ειδικές παρατηρήσεις."></textarea>
-          <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn small" id="pr-save">Αποθήκευση</button>
-            <button class="btn secondary small" id="pr-clear">Καθαρισμός</button>
-          </div>
-          <div id="pr-msg" class="muted" style="margin-top:6px;"></div>
-        </div>
-        <div class="panel">
-          <h3>Λίστα έργων</h3>
-          <div class="toolbar-row">
-            <span class="muted">Φίλτρο κατάστασης:</span>
-            <select id="pr-filter" class="inline-select">
-              <option value="all">Όλα</option>
-              <option value="open">Ανοιχτά</option>
-              <option value="inprogress">Σε εξέλιξη</option>
-              <option value="done">Ολοκληρωμένα</option>
-            </select>
-          </div>
-          <div id="projectsTableWrap" class="muted">Δεν υπάρχουν έργα ακόμη.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- MAINTENANCE -->
-    <section id="view-maintenance" style="display:none">
-      <div class="section-title">
-        <h2>Συντηρήσεις</h2>
-        <span>Προγραμματισμός & παρακολούθηση συντηρήσεων</span>
-      </div>
-      <div class="grid">
-        <div class="panel">
-          <h3>Νέα συντήρηση</h3>
-          <label>Πελάτης</label>
-          <select id="mt-client"></select>
-          <label>Ημερομηνία</label>
-          <input type="date" id="mt-date" />
-          <label>Περιγραφή</label>
-          <textarea id="mt-desc" placeholder="Καθαρισμός φίλτρων, έλεγχος ψυκτικού, γενική συντήρηση."></textarea>
-          <label>Κατάσταση</label>
-          <select id="mt-status">
-            <option value="open">Προγραμματισμένη</option>
-            <option value="done">Ολοκληρωμένη</option>
-          </select>
-          <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn small" id="mt-save">Αποθήκευση</button>
-            <button class="btn secondary small" id="mt-clear">Καθαρισμός</button>
-          </div>
-          <div id="mt-msg" class="muted" style="margin-top:6px;"></div>
-        </div>
-        <div class="panel">
-          <h3>Λίστα συντηρήσεων</h3>
-          <div class="toolbar-row">
-            <span class="muted">Φίλτρο:</span>
-            <select id="mt-filter" class="inline-select">
-              <option value="upcoming">Επερχόμενες</option>
-              <option value="all">Όλες</option>
-            </select>
-          </div>
-          <div id="mtTableWrap" class="muted">Δεν υπάρχουν συντηρήσεις ακόμη.</div>
-        </div>
-      </div>
-    </section>
-  </main>
 </div>
 
 <script>
-const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
+/* ----------- PAGE LOADER ----------- */
+function loadPage(page) {
+  let html = "";
 
-const STORAGE_KEY = 'mouhtis_hvac_suite_v1';
-const THEME_KEY = 'mouhtis_theme';
-let state = {
-  clients: [],
-  projects: [],
-  maintenance: [],
-  currentClientId: null,
-  currentProjectId: null,
-  currentMaintId: null
-};
-
-function loadState(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) state = Object.assign(state, JSON.parse(raw));
-  }catch(e){}
-}
-function saveState(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  refreshStats();
-}
-
-function applyTheme(theme){
-  if(theme==='dark') document.body.classList.add('dark');
-  else document.body.classList.remove('dark');
-  const btn = document.getElementById('themeToggle');
-  if(btn) btn.textContent = theme==='dark' ? 'Light mode' : 'Dark mode';
-}
-function loadTheme(){
-  const t = localStorage.getItem(THEME_KEY) || 'light';
-  applyTheme(t);
-}
-function toggleTheme(){
-  const isDark = !document.body.classList.contains('dark');
-  const t = isDark ? 'dark' : 'light';
-  localStorage.setItem(THEME_KEY,t);
-  applyTheme(t);
-}
-
-function formatDate(d){
-  if(!d) return '';
-  const parts = d.split('-');
-  if(parts.length!==3) return d;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
-}
-
-// NAV
-function showView(id){
-  $$('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
-  ['dashboard','clients','projects','maintenance'].forEach(v=>{
-    const s = $('#view-'+v);
-    if(s) s.style.display = (v===id)?'block':'none';
-  });
-  if(id==='clients') renderClients();
-  if(id==='projects') renderProjects();
-  if(id==='maintenance') renderMaintenance();
-}
-$$('.nav-btn').forEach(b=>b.onclick=()=>showView(b.dataset.view));
-$('[data-open="clients"]').onclick = ()=>showView('clients');
-$('[data-open="projects"]').onclick = ()=>showView('projects');
-$('[data-open="maintenance"]').onclick = ()=>showView('maintenance');
-
-// AC PLANNER
-function openPlanner(){
-  window.open('https://mouhtis.github.io/mouhtis-ac-planner/','_blank');
-}
-$('#openAcPlanner').onclick = openPlanner;
-$('#openAcPlanner2').onclick = openPlanner;
-
-// CLIENTS
-function clearClientForm(){
-  state.currentClientId=null;
-  $('#cl-name').value='';
-  $('#cl-phone').value='';
-  $('#cl-email').value='';
-  $('#cl-address').value='';
-  $('#cl-notes').value='';
-  $('#cl-msg').textContent='';
-}
-$('#cl-clear').onclick = clearClientForm;
-
-$('#cl-save').onclick = ()=>{
-  const name = $('#cl-name').value.trim();
-  if(!name){ $('#cl-msg').textContent='Συμπλήρωσε όνομα.'; return; }
-  const obj = {
-    id: state.currentClientId || ('c_'+Date.now()),
-    name,
-    phone: $('#cl-phone').value.trim(),
-    email: $('#cl-email').value.trim(),
-    address: $('#cl-address').value.trim(),
-    notes: $('#cl-notes').value.trim()
-  };
-  const idx = state.clients.findIndex(c=>c.id===obj.id);
-  if(idx>=0) state.clients[idx]=obj; else state.clients.push(obj);
-  state.currentClientId=obj.id;
-  $('#cl-msg').textContent='Αποθηκεύτηκε.';
-  saveState();
-  renderClients();
-  populateClientSelects();
-};
-
-function renderClients(){
-  const wrap = $('#clientsTableWrap');
-  if(!state.clients.length){
-    wrap.textContent='Δεν υπάρχουν πελάτες.';
-    return;
+  if(page === "dashboard"){
+    html = `
+      <h1>Dashboard</h1>
+      <input class="search-box" placeholder="Αναζήτηση παντού… (όνομα, τηλ, μοντέλο, έργο)">
+      <div class="card"><h3>Σύνοψη</h3>
+        Πελάτες: 0<br>Έργα: 0<br>Εργασίες: 0<br>Μελέτες: 0
+      </div>
+    `;
   }
-  let html = '<table><thead><tr><th>Όνομα</th><th>Τηλ</th><th>Διεύθυνση</th><th></th></tr></thead><tbody>';
-  state.clients.forEach(c=>{
-    html += `<tr>
-      <td>${c.name}</td>
-      <td>${c.phone||''}</td>
-      <td>${c.address||''}</td>
-      <td><span class="link" data-edit-client="${c.id}">Επεξ.</span></td>
-    </tr>`;
-  });
-  html+='</tbody></table>';
-  wrap.innerHTML=html;
-  $$('#clientsTableWrap [data-edit-client]').forEach(el=>{
-    el.onclick=()=>{
-      const c = state.clients.find(x=>x.id===el.dataset.editClient);
-      if(!c) return;
-      state.currentClientId=c.id;
-      $('#cl-name').value=c.name;
-      $('#cl-phone').value=c.phone||'';
-      $('#cl-email').value=c.email||'';
-      $('#cl-address').value=c.address||'';
-      $('#cl-notes').value=c.notes||'';
-      $('#cl-msg').textContent='Επεξεργασία πελάτη.';
-      showView('clients');
-    };
-  });
-}
-function populateClientSelects(){
-  const selects = [$('#pr-client'), $('#mt-client')];
-  selects.forEach(sel=>{
-    if(!sel) return;
-    const current = sel.value;
-    sel.innerHTML='';
-    const opt = document.createElement('option');
-    opt.value='';
-    opt.textContent='— Επιλογή πελάτη —';
-    sel.appendChild(opt);
-    state.clients.forEach(c=>{
-      const o=document.createElement('option');
-      o.value=c.id;o.textContent=c.name;
-      sel.appendChild(o);
-    });
-    if(current) sel.value=current;
-  });
-}
 
-// PROJECTS
-function clearProjectForm(){
-  state.currentProjectId=null;
-  $('#pr-client').value='';
-  $('#pr-title').value='';
-  $('#pr-location').value='';
-  $('#pr-type').value='install';
-  $('#pr-date').value='';
-  $('#pr-status').value='open';
-  $('#pr-notes').value='';
-  $('#pr-msg').textContent='';
-}
-$('#pr-clear').onclick = clearProjectForm;
+  if(page === "customers"){
+    html = `
+      <h1>Πελάτες</h1>
+      <input class="search-box" placeholder="Αναζήτηση πελάτη…">
+      <button class="btn">Νέος πελάτης</button>
+      <button class="btn">Όλοι</button>
+      <button class="btn">Top</button>
 
-$('#pr-save').onclick = ()=>{
-  const title = $('#pr-title').value.trim();
-  if(!title){ $('#pr-msg').textContent='Συμπλήρωσε τίτλο έργου.'; return; }
-  const obj = {
-    id: state.currentProjectId || ('p_'+Date.now()),
-    clientId: $('#pr-client').value || '',
-    title,
-    location: $('#pr-location').value.trim(),
-    type: $('#pr-type').value,
-    date: $('#pr-date').value,
-    status: $('#pr-status').value,
-    notes: $('#pr-notes').value.trim()
-  };
-  const idx = state.projects.findIndex(p=>p.id===obj.id);
-  if(idx>=0) state.projects[idx]=obj; else state.projects.push(obj);
-  state.currentProjectId=obj.id;
-  $('#pr-msg').textContent='Αποθηκεύτηκε.';
-  saveState();
-  renderProjects();
-};
-
-function renderProjects(){
-  const wrap = $('#projectsTableWrap');
-  if(!state.projects.length){
-    wrap.textContent='Δεν υπάρχουν έργα.';
-    $('#dashProjects').textContent='Δεν υπάρχουν καταχωρημένα έργα.';
-    return;
+      <div class="card">
+        <h3>Κατάλογος πελατών</h3>
+        <div class="list-item">Δεν υπάρχουν πελάτες</div>
+      </div>
+    `;
   }
-  const filter = $('#pr-filter').value;
-  let arr = state.projects.slice();
-  if(filter!=='all') arr = arr.filter(p=>p.status===filter);
-  arr.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  let html = '<table><thead><tr><th>Ημ/νία</th><th>Πελάτης</th><th>Τίτλος</th><th>Τύπος</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
-  arr.forEach(p=>{
-    const cl = state.clients.find(c=>c.id===p.clientId);
-    const status =
-      p.status==='done' ? '<span class="pill green">Ολοκληρωμένο</span>' :
-      p.status==='inprogress' ? '<span class="pill orange">Σε εξέλιξη</span>' :
-      '<span class="pill red">Ανοιχτό</span>';
-    const type =
-      p.type==='install' ? 'Εγκατάσταση' :
-      p.type==='service' ? 'Service' : 'Συντήρηση';
-    html += `<tr>
-      <td>${formatDate(p.date||'')}</td>
-      <td>${cl?cl.name:'—'}</td>
-      <td>${p.title}</td>
-      <td>${type}</td>
-      <td>${status}</td>
-      <td><span class="link" data-edit-project="${p.id}">Επεξ.</span></td>
-    </tr>`;
-  });
-  html+='</tbody></table>';
-  wrap.innerHTML=html;
-  $$('#projectsTableWrap [data-edit-project]').forEach(el=>{
-    el.onclick=()=>{
-      const p = state.projects.find(x=>x.id===el.dataset.editProject);
-      if(!p) return;
-      state.currentProjectId=p.id;
-      $('#pr-client').value=p.clientId||'';
-      $('#pr-title').value=p.title;
-      $('#pr-location').value=p.location||'';
-      $('#pr-type').value=p.type;
-      $('#pr-date').value=p.date||'';
-      $('#pr-status').value=p.status;
-      $('#pr-notes').value=p.notes||'';
-      $('#pr-msg').textContent='Επεξεργασία έργου.';
-      showView('projects');
-    };
-  });
 
-  const dash = $('#dashProjects');
-  const recent = state.projects.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
-  if(!recent.length){ dash.textContent='Δεν υπάρχουν καταχωρημένα έργα.'; }
-  else{
-    let h='<ul class="muted" style="padding-left:18px;margin:4px 0;">';
-    recent.forEach(p=>{
-      const cl = state.clients.find(c=>c.id===p.clientId);
-      h+=`<li>${formatDate(p.date||'')} • ${p.title} (${cl?cl.name:'—'})</li>`;
-    });
-    h+='</ul>';
-    dash.innerHTML=h;
+  if(page === "projects"){
+    html = `
+      <h1>Έργα</h1>
+      <input class="search-box" placeholder="Αναζήτηση έργου…">
+      <button class="btn">Νέο έργο</button>
+      <button class="btn">Όλα</button>
+      <button class="btn">Ολοκληρωμένα</button>
+      <button class="btn">Εκκρεμούν</button>
+
+      <div class="card">
+        <h3>Κατάλογος έργων</h3>
+        <div class="list-item">Δεν υπάρχουν έργα</div>
+      </div>
+    `;
   }
-}
-$('#pr-filter').onchange = renderProjects;
 
-// MAINTENANCE
-function clearMaintForm(){
-  state.currentMaintId=null;
-  $('#mt-client').value='';
-  $('#mt-date').value='';
-  $('#mt-desc').value='';
-  $('#mt-status').value='open';
-  $('#mt-msg').textContent='';
-}
-$('#mt-clear').onclick = clearMaintForm;
+  if(page === "tasks"){
+    html = `
+      <h1>Εργασίες</h1>
+      <input class="search-box" placeholder="Αναζήτηση εργασίας…">
+      <button class="btn">Νέα εργασία</button>
+      <button class="btn">Όλες</button>
+      <button class="btn">Ολοκληρωμένες</button>
+      <button class="btn">Εκκρεμούν</button>
 
-$('#mt-save').onclick = ()=>{
-  const date = $('#mt-date').value;
-  if(!date){ $('#mt-msg').textContent='Επίλεξε ημερομηνία.'; return; }
-  const obj = {
-    id: state.currentMaintId || ('m_'+Date.now()),
-    clientId: $('#mt-client').value || '',
-    date,
-    desc: $('#mt-desc').value.trim(),
-    status: $('#mt-status').value
-  };
-  const idx = state.maintenance.findIndex(m=>m.id===obj.id);
-  if(idx>=0) state.maintenance[idx]=obj; else state.maintenance.push(obj);
-  state.currentMaintId=obj.id;
-  $('#mt-msg').textContent='Αποθηκεύτηκε.';
-  saveState();
-  renderMaintenance();
-};
-
-function renderMaintenance(){
-  const wrap = $('#mtTableWrap');
-  if(!state.maintenance.length){
-    wrap.textContent='Δεν υπάρχουν συντηρήσεις.';
-    $('#dashMaint').textContent='Δεν υπάρχουν προγραμματισμένες συντηρήσεις.';
-    return;
+      <div class="card">
+        <h3>Λίστα εργασιών</h3>
+        <div class="list-item">Δεν υπάρχουν καταχωρήσεις</div>
+      </div>
+    `;
   }
-  const filter = $('#mt-filter').value;
-  const today = new Date().toISOString().slice(0,10);
-  let arr = state.maintenance.slice();
-  if(filter==='upcoming'){
-    arr = arr.filter(m=>m.date>=today && m.status!=='done');
+
+  if(page === "studies"){
+    html = `
+      <h1>Μελέτες</h1>
+      <input class="search-box" placeholder="Αναζήτηση μελέτης…">
+      <button class="btn">Νέα μελέτη</button>
+      <button class="btn">Αρχείο</button>
+
+      <div class="card">
+        <h3>Κατάλογος μελετών</h3>
+        <div class="list-item">Δεν υπάρχουν μελέτες</div>
+      </div>
+    `;
   }
-  arr.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  let html = '<table><thead><tr><th>Ημ/νία</th><th>Πελάτης</th><th>Περιγραφή</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
-  arr.forEach(m=>{
-    const cl = state.clients.find(c=>c.id===m.clientId);
-    const pill = m.status==='done'
-      ? '<span class="pill green">Ολοκληρωμένη</span>'
-      : '<span class="pill orange">Προγραμματισμένη</span>';
-    html += `<tr>
-      <td>${formatDate(m.date)}</td>
-      <td>${cl?cl.name:'—'}</td>
-      <td>${m.desc||''}</td>
-      <td>${pill}</td>
-      <td><span class="link" data-edit-maint="${m.id}">Επεξ.</span></td>
-    </tr>`;
-  });
-  html+='</tbody></table>';
-  wrap.innerHTML=html;
 
-  $$('#mtTableWrap [data-edit-maint]').forEach(el=>{
-    el.onclick=()=>{
-      const m = state.maintenance.find(x=>x.id===el.dataset.editMaint);
-      if(!m) return;
-      state.currentMaintId=m.id;
-      $('#mt-client').value=m.clientId||'';
-      $('#mt-date').value=m.date;
-      $('#mt-desc').value=m.desc||'';
-      $('#mt-status').value=m.status;
-      $('#mt-msg').textContent='Επεξεργασία συντήρησης.';
-      showView('maintenance');
-    };
-  });
-
-  const upcoming = state.maintenance
-    .filter(m=>m.date>=today && m.status!=='done')
-    .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
-    .slice(0,5);
-  const dash = $('#dashMaint');
-  if(!upcoming.length){
-    dash.textContent='Δεν υπάρχουν προγραμματισμένες συντηρήσεις.';
-  }else{
-    let h='<ul class="muted" style="padding-left:18px;margin:4px 0;">';
-    upcoming.forEach(m=>{
-      const cl = state.clients.find(c=>c.id===m.clientId);
-      h+=`<li>${formatDate(m.date)} • ${cl?cl.name:'—'} – ${m.desc||''}</li>`;
-    });
-    h+='</ul>';
-    dash.innerHTML=h;
-  }
+  document.getElementById("mainContent").innerHTML = html;
 }
-$('#mt-filter').onchange = renderMaintenance;
-
-// STATS + INIT
-function refreshStats(){
-  $('#statClients').textContent = state.clients.length;
-  $('#statProjects').textContent = state.projects.length;
-  const today = new Date().toISOString().slice(0,10);
-  const openMaint = state.maintenance.filter(m=>m.date>=today && m.status!=='done').length;
-  $('#statMaint').textContent = openMaint;
-}
-function initToday(){
-  const d = new Date();
-  const opts = {weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'};
-  $('#todayLabel').textContent = d.toLocaleDateString('el-GR',opts);
-}
-
-// STARTUP
-loadTheme();
-document.getElementById('themeToggle').onclick = toggleTheme;
-loadState();
-initToday();
-refreshStats();
-renderClients();
-populateClientSelects();
-renderProjects();
-renderMaintenance();
-showView('dashboard');
 </script>
+
 </body>
 </html>
