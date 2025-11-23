@@ -10,6 +10,9 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 
+<!-- jsPDF για PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
   :root{
     --bg:#f5f7fa;
@@ -104,7 +107,7 @@
     border: none;
     border-radius: 8px;
     text-align: left;
-    cursor: pointer;
+    cursor: button;
     display:flex;
     align-items:center;
     gap:8px;
@@ -319,6 +322,47 @@ let studies = [];
 function $(sel){return document.querySelector(sel);}
 function $all(sel){return Array.from(document.querySelectorAll(sel));}
 
+/* ------------ PDF HEADER HELPERS ------------ */
+function addPdfHeader(doc, reportTitle) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  doc.setFont("helvetica", "normal");
+
+  // NeoClima (μεγαλύτερο)
+  doc.setFontSize(22);
+  doc.setTextColor(11,116,222);
+  const main = "NeoClima";
+  const sub = "Mouhtis HVAC Suite";
+  const mainWidth = doc.getTextWidth(main);
+  const subWidth = doc.getTextWidth(sub);
+  const maxWidth = Math.max(mainWidth, subWidth);
+  const baseX = (pageWidth - maxWidth)/2;
+
+  doc.text(main, baseX + (maxWidth-mainWidth)/2, 20);
+
+  // Mouhtis HVAC Suite (πιο μικρό ώστε να έχει περίπου ίδιο μήκος)
+  doc.setFontSize(14);
+  doc.text(sub, baseX + (maxWidth-subWidth)/2, 28);
+
+  // γραμμή
+  doc.setDrawColor(180);
+  doc.line(15, 34, pageWidth-15, 34);
+
+  // τίτλος αναφοράς
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(12);
+  doc.text(reportTitle, 15, 44);
+}
+
+function ensureSpace(doc, y, add=20){
+  const pageHeight = doc.internal.pageSize.getHeight();
+  if(y+add > pageHeight-20){
+    doc.addPage();
+    addPdfHeader(doc, "Συνέχεια");
+    return 60;
+  }
+  return y;
+}
+
 /* ------------ CUSTOMERS CRUD ------------ */
 async function loadCustomers(){
   try{
@@ -355,7 +399,10 @@ function renderCustomerList(){
       <td>${c.phone||""}</td>
       <td>${c.area||""}</td>
       <td>${c.address||""}</td>
-      <td><span class="link" data-del="${c.id}">Διαγραφή</span></td>
+      <td>
+        <span class="link" data-del="${c.id}">Διαγραφή</span> |
+        <span class="link" data-pdf="${c.id}">PDF</span>
+      </td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -363,6 +410,9 @@ function renderCustomerList(){
 
   $all('[data-del]').forEach(el=>{
     el.onclick = ()=> deleteCustomer(el.getAttribute('data-del'));
+  });
+  $all('[data-pdf]').forEach(el=>{
+    el.onclick = ()=> exportCustomerPDF(el.getAttribute('data-pdf'));
   });
 }
 
@@ -829,6 +879,124 @@ function fillProjectSelect(selectId){
   if(prev) sel.value=prev;
 }
 
+/* ------------ EXPORT PDF ΓΙΑ ΠΕΛΑΤΕΣ ------------ */
+function exportCustomerPDF(customerId){
+  if(!window.jspdf || !window.jspdf.jsPDF){
+    alert("Το PDF module δεν φορτώθηκε.");
+    return;
+  }
+  const c = customers.find(x=>x.id===customerId);
+  if(!c){
+    alert("Δεν βρέθηκε ο πελάτης.");
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  addPdfHeader(doc, "Αναφορά πελάτη");
+
+  let y = 60;
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(13);
+  doc.text("Στοιχεία πελάτη", 15, y); y += 6;
+
+  doc.setFontSize(11);
+  const lines = [
+    `Όνομα: ${c.name || ""}`,
+    `Τηλέφωνο: ${c.phone || ""}`,
+    `Email: ${c.email || ""}`,
+    `Περιοχή: ${c.area || ""}`,
+    `Διεύθυνση: ${c.address || ""}`
+  ];
+  lines.forEach(line=>{
+    y = ensureSpace(doc,y,8);
+    doc.text(line, 20, y);
+    y += 6;
+  });
+
+  if(c.notes){
+    y = ensureSpace(doc,y,10);
+    doc.setFontSize(12);
+    doc.text("Σχόλια:", 15, y); y += 6;
+    doc.setFontSize(11);
+    const noteLines = doc.splitTextToSize(c.notes, 170);
+    noteLines.forEach(l=>{
+      y = ensureSpace(doc,y,8);
+      doc.text(l, 20, y);
+      y += 5;
+    });
+  }
+
+  // Σχετικές εργασίες
+  const custTasks = tasks.filter(t=>t.customerId===customerId);
+  if(custTasks.length){
+    y = ensureSpace(doc,y,14);
+    doc.setFontSize(13);
+    doc.text("Σχετικές εργασίες", 15, y); y += 6;
+    doc.setFontSize(11);
+    custTasks.forEach((t,idx)=>{
+      y = ensureSpace(doc,y,12);
+      doc.text(`${idx+1}. ${t.title || ""}`, 20, y); y+=5;
+      const clientType =
+        t.type==="installation" ? "Εγκατάσταση" :
+        t.type==="fault" ? "Βλάβη" :
+        t.type==="maintenance" ? "Συντήρηση" : "Άλλο";
+      doc.text(`   Τύπος: ${clientType} | Ημ/νία: ${t.date || ""} | Κατάσταση: ${t.status || ""}`, 20, y); y+=5;
+      if(t.notes){
+        const tNotes = doc.splitTextToSize(`   Σημειώσεις: ${t.notes}`, 170);
+        tNotes.forEach(l=>{
+          y = ensureSpace(doc,y,8);
+          doc.text(l, 20, y); y+=4;
+        });
+      }
+    });
+  }
+
+  // Σχετικά έργα
+  const custProjects = projects.filter(p=>p.customerId===customerId);
+  if(custProjects.length){
+    y = ensureSpace(doc,y,14);
+    doc.setFontSize(13);
+    doc.text("Σχετικά έργα", 15, y); y += 6;
+    doc.setFontSize(11);
+    custProjects.forEach((p,idx)=>{
+      y = ensureSpace(doc,y,12);
+      const total = Number(p.costTotal || 0).toFixed(2);
+      doc.text(`${idx+1}. ${p.title || ""}`, 20, y); y+=5;
+      doc.text(`   Ημ/νία: ${p.date || ""} | Σύνολο: ${total} €`, 20, y); y+=5;
+      if(p.location){
+        doc.text(`   Τοποθεσία: ${p.location}`, 20, y); y+=5;
+      }
+    });
+  }
+
+  // Σχετικές μελέτες
+  const custStudies = studies.filter(s=>s.customerId===customerId);
+  if(custStudies.length){
+    y = ensureSpace(doc,y,14);
+    doc.setFontSize(13);
+    doc.text("Σχετικές μελέτες κλιματισμού", 15, y); y += 6;
+    doc.setFontSize(11);
+    custStudies.forEach((s,idx)=>{
+      y = ensureSpace(doc,y,12);
+      doc.text(`${idx+1}. ${s.title || ""}`, 20, y); y+=5;
+      if(s.area){
+        doc.text(`   Εμβαδόν: ${s.area} m², Χρήση: ${s.usage || ""}`, 20, y); y+=5;
+      }
+      if(s.summary){
+        const sumLines = doc.splitTextToSize(`   Σύνοψη: ${s.summary}`, 170);
+        sumLines.forEach(l=>{
+          y = ensureSpace(doc,y,8);
+          doc.text(l, 20, y); y+=4;
+        });
+      }
+    });
+  }
+
+  const safeName = (c.name || "pelatis").replace(/[^A-Za-z0-9Α-Ωα-ω]+/g,"_");
+  doc.save(`pelatis_${safeName}.pdf`);
+}
+
 /* ------------ PAGE RENDERING ------------ */
 function loadPage(page){
   const main = document.getElementById("mainContent");
@@ -879,6 +1047,10 @@ function loadPage(page){
     document.getElementById("customers_search").oninput = renderCustomerList;
 
     loadCustomers();
+    // Φορτώνουμε και τα άλλα ώστε να υπάρχουν για PDF
+    loadTasks();
+    loadProjects();
+    loadStudies();
   }
 
   if(page==="tasks"){
