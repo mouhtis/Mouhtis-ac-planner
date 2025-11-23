@@ -950,7 +950,6 @@ function computeDashboardStats(){
     yearlyExpenses: 0
   };
 
-  // new customers this month
   customers.forEach(c=>{
     if(c.createdAt && c.createdAt.toDate){
       const d = c.createdAt.toDate();
@@ -958,7 +957,6 @@ function computeDashboardStats(){
     }
   });
 
-  // tasks (περιλαμβάνουν πλέον και κόστος)
   tasks.forEach(t=>{
     const d = parseISODate(t.date);
     if(sameMonthYear(d,now)) stats.tasksMonth++;
@@ -971,7 +969,6 @@ function computeDashboardStats(){
     if(sameYear(d,now)) stats.yearlyExpenses += c;
   });
 
-  // projects / expenses
   let totalCost = 0;
   let sumCost = 0;
   projects.forEach(p=>{
@@ -985,7 +982,6 @@ function computeDashboardStats(){
   });
   stats.avgProjectCost = totalCost? (sumCost/totalCost):0;
 
-  // studies
   let areaSum = 0, areaCount=0;
   studies.forEach(s=>{
     if(s.area){ areaSum+=Number(s.area); areaCount++; }
