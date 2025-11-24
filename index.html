@@ -267,7 +267,6 @@
   }
   .stat-good{color:var(--good);}
   .stat-bad{color:var(--bad);}
-  .stat-neutral{color:#d97706;}
 
   .charts-grid{
     display:grid;
@@ -371,7 +370,13 @@ let projects = [];
 let studies = [];
 let profitChartInstance = null;
 let taskTypeChartInstance = null;
-let tasksFinanceChartInstance = null;
+let incomeChartInstance = null;
+
+/* IDs για επεξεργασία */
+let editingCustomerId = null;
+let editingTaskId = null;
+let editingProjectId = null;
+let editingStudyId = null;
 
 /* ------------ HELPERS ------------ */
 function $(sel){return document.querySelector(sel);}
@@ -387,11 +392,6 @@ function sameMonthYear(d,ref){
 }
 function sameYear(d,ref){
   return d && d.getFullYear()===ref.getFullYear();
-}
-function getProfitClass(value){
-  if(value > 20) return "stat-good";
-  if(value < -20) return "stat-bad";
-  return "stat-neutral";
 }
 
 /* ------------ CUSTOMERS CRUD ------------ */
@@ -430,7 +430,11 @@ function renderCustomerList(){
       <td>${c.phone||""}</td>
       <td>${c.area||""}</td>
       <td>${c.address||""}</td>
-      <td><span class="link" data-del="${c.id}">Διαγραφή</span></td>
+      <td>
+        <span class="link" data-c-edit="${c.id}">Επεξεργασία</span>
+        &nbsp;•&nbsp;
+        <span class="link" data-del="${c.id}">Διαγραφή</span>
+      </td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -439,6 +443,23 @@ function renderCustomerList(){
   $all('[data-del]').forEach(el=>{
     el.onclick = ()=> deleteCustomer(el.getAttribute('data-del'));
   });
+  $all('[data-c-edit]').forEach(el=>{
+    el.onclick = ()=> startEditCustomer(el.getAttribute('data-c-edit'));
+  });
+}
+
+function startEditCustomer(id){
+  const c = customers.find(c=>c.id===id);
+  if(!c) return;
+  editingCustomerId = id;
+  $("#c_name").value = c.name || "";
+  $("#c_phone").value = c.phone || "";
+  $("#c_email").value = c.email || "";
+  $("#c_address").value = c.address || "";
+  $("#c_area").value = c.area || "";
+  $("#c_notes").value = c.notes || "";
+  $("#c_msg").textContent = "Επεξεργασία πελάτη. Πάτησε 'Καθαρισμός' για ακύρωση.";
+  $("#c_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveCustomer(){
@@ -454,14 +475,24 @@ async function saveCustomer(){
     return;
   }
   msgEl.textContent = "Αποθήκευση...";
+
+  const data = { name, phone, email, address, area, notes };
+
   try{
-    const data = {
-      name, phone, email, address, area, notes,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = await db.collection("customers").add(data);
-    customers.unshift({id:ref.id, ...data});
-    msgEl.textContent = "Αποθηκεύτηκε.";
+    if(editingCustomerId){
+      await db.collection("customers").doc(editingCustomerId).update(data);
+      const idx = customers.findIndex(c=>c.id===editingCustomerId);
+      if(idx>-1) customers[idx] = {...customers[idx], ...data};
+      msgEl.textContent = "Ενημερώθηκε.";
+    }else{
+      const fullData = {
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      const ref = await db.collection("customers").add(fullData);
+      customers.unshift({id:ref.id, ...fullData});
+      msgEl.textContent = "Αποθηκεύτηκε.";
+    }
     clearCustomerForm(false);
     renderCustomerList();
   }catch(e){
@@ -477,6 +508,9 @@ function clearCustomerForm(clearMsg=true){
   $("#c_address").value="";
   $("#c_area").value="";
   $("#c_notes").value="";
+  editingCustomerId = null;
+  const saveBtn = $("#c_save_btn");
+  if(saveBtn) saveBtn.textContent = "Αποθήκευση";
   if(clearMsg) $("#c_msg").textContent="";
 }
 
@@ -495,7 +529,7 @@ async function deleteCustomer(id){
   }
 }
 
-/* ------------ TASKS CRUD (με κόστος + τιμή) ------------ */
+/* ------------ TASKS CRUD (με κόστος + Τιμή) ------------ */
 async function loadTasks(){
   try{
     const snap = await db.collection("tasks").orderBy("createdAt","desc").get();
@@ -539,7 +573,7 @@ function renderTaskList(){
     wrap.innerHTML = '<div class="muted">Δεν υπάρχουν εργασίες.</div>';
     return;
   }
-  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κόστος (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κόστος (€)</th><th>Τιμή (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
   arr.forEach(t=>{
     const client = customers.find(c=>c.id===t.customerId);
     const typeLabel =
@@ -551,14 +585,20 @@ function renderTaskList(){
       t.status==="inprogress" ? '<span class="pill orange">Σε εξέλιξη</span>' :
       '<span class="pill red">Ανοιχτή</span>';
     const costTotal = Number(t.costTotal || 0);
+    const price = Number(t.price || 0);
     html += `<tr>
       <td>${t.title||""}</td>
       <td>${client?client.name:"—"}</td>
       <td>${typeLabel}</td>
       <td>${t.date||""}</td>
       <td>${costTotal.toFixed(2)}</td>
+      <td>${price.toFixed(2)}</td>
       <td>${pill}</td>
-      <td><span class="link" data-task-del="${t.id}">Διαγραφή</span></td>
+      <td>
+        <span class="link" data-task-edit="${t.id}">Επεξεργασία</span>
+        &nbsp;•&nbsp;
+        <span class="link" data-task-del="${t.id}">Διαγραφή</span>
+      </td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -567,6 +607,29 @@ function renderTaskList(){
   $all('[data-task-del]').forEach(el=>{
     el.onclick = ()=> deleteTask(el.getAttribute('data-task-del'));
   });
+  $all('[data-task-edit]').forEach(el=>{
+    el.onclick = ()=> startEditTask(el.getAttribute('data-task-edit'));
+  });
+}
+
+function startEditTask(id){
+  const t = tasks.find(t=>t.id===id);
+  if(!t) return;
+  editingTaskId = id;
+  $("#t_customer").value = t.customerId || "";
+  $("#t_type").value = t.type || "installation";
+  $("#t_title").value = t.title || "";
+  $("#t_date").value = t.date || "";
+  $("#t_status").value = t.status || "open";
+  $("#t_notes").value = t.notes || "";
+  $("#t_unitCost").value = t.unitCost ?? "";
+  $("#t_materialsCost").value = t.materialsCost ?? "";
+  $("#t_laborHours").value = t.laborHours ?? "";
+  $("#t_laborRate").value = t.laborRate ?? "10";
+  $("#t_price").value = t.price ?? "";
+  calcTaskTotalLocal();
+  $("#t_msg").textContent = "Επεξεργασία εργασίας. Πάτησε 'Καθαρισμός' για ακύρωση.";
+  $("#t_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveTask(){
@@ -590,26 +653,38 @@ async function saveTask(){
     return;
   }
   msgEl.textContent = "Αποθήκευση...";
+
+  const data = {
+    customerId,
+    type,
+    title,
+    date,
+    status,
+    notes,
+    unitCost,
+    materialsCost,
+    laborHours,
+    laborRate,
+    laborCost,
+    costTotal: totalCost,
+    price
+  };
+
   try{
-    const data = {
-      customerId,
-      type,
-      title,
-      date,
-      status,
-      notes,
-      unitCost,
-      materialsCost,
-      laborHours,
-      laborRate,
-      laborCost,
-      costTotal: totalCost,
-      price,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = await db.collection("tasks").add(data);
-    tasks.unshift({id:ref.id, ...data});
-    msgEl.textContent = "Αποθηκεύτηκε.";
+    if(editingTaskId){
+      await db.collection("tasks").doc(editingTaskId).update(data);
+      const idx = tasks.findIndex(t=>t.id===editingTaskId);
+      if(idx>-1) tasks[idx] = {...tasks[idx], ...data};
+      msgEl.textContent = "Ενημερώθηκε.";
+    }else{
+      const fullData = {
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      const ref = await db.collection("tasks").add(fullData);
+      tasks.unshift({id:ref.id, ...fullData});
+      msgEl.textContent = "Αποθηκεύτηκε.";
+    }
     clearTaskForm(false);
     renderTaskList();
   }catch(e){
@@ -632,6 +707,9 @@ function clearTaskForm(clearMsg=true){
   $("#t_price").value="";
   const el = $("#t_total_view");
   if(el) el.textContent = "Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)";
+  editingTaskId = null;
+  const btn = $("#t_save_btn");
+  if(btn) btn.textContent = "Αποθήκευση";
   if(clearMsg) $("#t_msg").textContent="";
 }
 
@@ -697,7 +775,11 @@ function renderProjectList(){
       <td>${client?client.name:"—"}</td>
       <td>${p.date||""}</td>
       <td>${total.toFixed(2)}</td>
-      <td><span class="link" data-proj-del="${p.id}">Διαγραφή</span></td>
+      <td>
+        <span class="link" data-proj-edit="${p.id}">Επεξεργασία</span>
+        &nbsp;•&nbsp;
+        <span class="link" data-proj-del="${p.id}">Διαγραφή</span>
+      </td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -706,6 +788,28 @@ function renderProjectList(){
   $all('[data-proj-del]').forEach(el=>{
     el.onclick = ()=> deleteProject(el.getAttribute('data-proj-del'));
   });
+  $all('[data-proj-edit]').forEach(el=>{
+    el.onclick = ()=> startEditProject(el.getAttribute('data-proj-edit'));
+  });
+}
+
+function startEditProject(id){
+  const p = projects.find(p=>p.id===id);
+  if(!p) return;
+  editingProjectId = id;
+  $("#proj_customer").value = p.customerId || "";
+  $("#proj_title").value = p.title || "";
+  $("#proj_location").value = p.location || "";
+  $("#proj_date").value = p.date || "";
+  $("#proj_units").value = p.costUnits ?? "";
+  $("#proj_materials").value = p.costMaterials ?? "";
+  $("#proj_helper_hours").value = p.helperHours ?? "";
+  $("#proj_helper_rate").value = p.helperRate ?? "5";
+  $("#proj_other").value = p.costOther ?? "";
+  $("#proj_notes").value = p.notes || "";
+  calcProjectTotalLocal();
+  $("#proj_msg").textContent = "Επεξεργασία έργου. Πάτησε 'Καθαρισμός' για ακύρωση.";
+  $("#proj_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveProject(){
@@ -727,24 +831,36 @@ async function saveProject(){
   const helperCost = h*r;
   const total = units + mats + helperCost + other;
   msgEl.textContent = "Αποθήκευση...";
+
+  const data = {
+    customerId,
+    title,
+    location,
+    date,
+    costUnits: units,
+    costMaterials: mats,
+    helperHours: h,
+    helperRate: r,
+    costOther: other,
+    costTotal: total,
+    notes
+  };
+
   try{
-    const data = {
-      customerId,
-      title,
-      location,
-      date,
-      costUnits: units,
-      costMaterials: mats,
-      helperHours: h,
-      helperRate: r,
-      costOther: other,
-      costTotal: total,
-      notes,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = await db.collection("projects").add(data);
-    projects.unshift({id:ref.id, ...data});
-    msgEl.textContent = "Αποθηκεύτηκε.";
+    if(editingProjectId){
+      await db.collection("projects").doc(editingProjectId).update(data);
+      const idx = projects.findIndex(p=>p.id===editingProjectId);
+      if(idx>-1) projects[idx] = {...projects[idx], ...data};
+      msgEl.textContent = "Ενημερώθηκε.";
+    }else{
+      const fullData = {
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      const ref = await db.collection("projects").add(fullData);
+      projects.unshift({id:ref.id, ...fullData});
+      msgEl.textContent = "Αποθηκεύτηκε.";
+    }
     clearProjectForm(false);
     renderProjectList();
   }catch(e){
@@ -765,6 +881,9 @@ function clearProjectForm(clearMsg=true){
   $("#proj_other").value="";
   $("#proj_notes").value="";
   calcProjectTotalLocal();
+  editingProjectId = null;
+  const btn = $("#proj_save_btn");
+  if(btn) btn.textContent = "Αποθήκευση";
   if(clearMsg) $("#proj_msg").textContent="";
 }
 
@@ -842,7 +961,11 @@ function renderStudyList(){
       <td>${s.title||""}</td>
       <td>${client?client.name:"—"}</td>
       <td>${proj?proj.title:"—"}</td>
-      <td><span class="link" data-study-del="${s.id}">Διαγραφή</span></td>
+      <td>
+        <span class="link" data-study-edit="${s.id}">Επεξεργασία</span>
+        &nbsp;•&nbsp;
+        <span class="link" data-study-del="${s.id}">Διαγραφή</span>
+      </td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -851,6 +974,24 @@ function renderStudyList(){
   $all('[data-study-del]').forEach(el=>{
     el.onclick = ()=> deleteStudy(el.getAttribute('data-study-del'));
   });
+  $all('[data-study-edit]').forEach(el=>{
+    el.onclick = ()=> startEditStudy(el.getAttribute('data-study-edit'));
+  });
+}
+
+function startEditStudy(id){
+  const s = studies.find(s=>s.id===id);
+  if(!s) return;
+  editingStudyId = id;
+  $("#study_title").value = s.title || "";
+  $("#study_customer").value = s.customerId || "";
+  $("#study_project").value = s.projectId || "";
+  $("#study_area").value = s.area ?? "";
+  $("#study_usage").value = s.usage || "home";
+  $("#study_ins").value = s.insulation || "";
+  $("#study_summary").value = s.summary || "";
+  $("#study_msg").textContent = "Επεξεργασία μελέτης. Πάτησε 'Καθαρισμός' για ακύρωση.";
+  $("#study_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveStudy(){
@@ -867,20 +1008,32 @@ async function saveStudy(){
     return;
   }
   msgEl.textContent = "Αποθήκευση...";
+
+  const data = {
+    title,
+    customerId,
+    projectId,
+    area,
+    usage,
+    insulation: ins,
+    summary
+  };
+
   try{
-    const data = {
-      title,
-      customerId,
-      projectId,
-      area,
-      usage,
-      insulation: ins,
-      summary,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = await db.collection("studies").add(data);
-    studies.unshift({id:ref.id, ...data});
-    msgEl.textContent = "Αποθηκεύτηκε.";
+    if(editingStudyId){
+      await db.collection("studies").doc(editingStudyId).update(data);
+      const idx = studies.findIndex(s=>s.id===editingStudyId);
+      if(idx>-1) studies[idx] = {...studies[idx], ...data};
+      msgEl.textContent = "Ενημερώθηκε.";
+    }else{
+      const fullData = {
+        ...data,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      const ref = await db.collection("studies").add(fullData);
+      studies.unshift({id:ref.id, ...fullData});
+      msgEl.textContent = "Αποθηκεύτηκε.";
+    }
     clearStudyForm(false);
     renderStudyList();
   }catch(e){
@@ -897,6 +1050,9 @@ function clearStudyForm(clearMsg=true){
   $("#study_usage").value="home";
   $("#study_ins").value="";
   $("#study_summary").value="";
+  editingStudyId = null;
+  const btn = $("#study_save_btn");
+  if(btn) btn.textContent = "Αποθήκευση";
   if(clearMsg) $("#study_msg").textContent="";
 }
 
@@ -957,16 +1113,7 @@ function computeDashboardStats(){
     totalStudies: studies.length,
     avgStudyArea: 0,
     monthlyExpenses: 0,
-    yearlyExpenses: 0,
-    revenueAll: 0,
-    costAll: 0,
-    profitAll: 0,
-    revenue30: 0,
-    cost30: 0,
-    profit30: 0,
-    revenue365: 0,
-    cost365: 0,
-    profit365: 0
+    yearlyExpenses: 0
   };
 
   customers.forEach(c=>{
@@ -984,48 +1131,28 @@ function computeDashboardStats(){
     if(stats.tasksByType[t.type]!=null) stats.tasksByType[t.type]++; else stats.tasksByType.other++;
 
     const c = Number(t.costTotal || 0);
-    const price = Number(t.price || 0);
-
-    stats.costAll += c;
-    stats.revenueAll += price;
-
-    if(d){
-      const diffDays = (now - d)/(1000*60*60*24);
-      if(diffDays >= 0 && diffDays <= 30){
-        stats.cost30 += c;
-        stats.revenue30 += price;
-      }
-      if(diffDays >= 0 && diffDays <= 365){
-        stats.cost365 += c;
-        stats.revenue365 += price;
-      }
-      if(sameMonthYear(d,now)) stats.monthlyExpenses += c;
-      if(sameYear(d,now)) stats.yearlyExpenses += c;
-    }
+    if(sameMonthYear(d,now)) stats.monthlyExpenses += c;
+    if(sameYear(d,now)) stats.yearlyExpenses += c;
   });
 
-  let totalCostProjects = 0;
-  let sumCostProjects = 0;
+  let totalCost = 0;
+  let sumCost = 0;
   projects.forEach(p=>{
     const total = Number(p.costTotal||0);
-    sumCostProjects += total;
+    sumCost += total;
     if(total>stats.maxProjectCost) stats.maxProjectCost = total;
-    totalCostProjects++;
+    totalCost++;
     const d = parseISODate(p.date);
     if(sameMonthYear(d,now)) stats.monthlyExpenses += total;
     if(sameYear(d,now)) stats.yearlyExpenses += total;
   });
-  stats.avgProjectCost = totalCostProjects? (sumCostProjects/totalCostProjects):0;
+  stats.avgProjectCost = totalCost? (sumCost/totalCost):0;
 
   let areaSum = 0, areaCount=0;
   studies.forEach(s=>{
     if(s.area){ areaSum+=Number(s.area); areaCount++; }
   });
   stats.avgStudyArea = areaCount? (areaSum/areaCount):0;
-
-  stats.profitAll = stats.revenueAll - stats.costAll;
-  stats.profit30 = stats.revenue30 - stats.cost30;
-  stats.profit365 = stats.revenue365 - stats.cost365;
 
   return stats;
 }
@@ -1038,31 +1165,6 @@ function renderDashboard(){
   main.innerHTML = `
     <h1>Πίνακας ελέγχου</h1>
     <div class="subtitle">Γενική εικόνα πελατών, εργασιών, έργων και κόστους.</div>
-
-    <div class="card">
-      <h3>Έσοδα / Έξοδα εργασιών</h3>
-      <div class="dashboard-grid" style="margin-bottom:8px;">
-        <div class="stat-card">
-          <div class="stat-label">Σύνολο</div>
-          <div class="stat-sub">Έσοδα: ${stats.revenueAll.toFixed(2)}€</div>
-          <div class="stat-sub">Έξοδα: ${stats.costAll.toFixed(2)}€</div>
-          <div class="stat-sub">Κέρδος: <span class="${getProfitClass(stats.profitAll)}">${stats.profitAll.toFixed(2)}€</span></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Τελευταίες 30 ημέρες</div>
-          <div class="stat-sub">Έσοδα: ${stats.revenue30.toFixed(2)}€</div>
-          <div class="stat-sub">Έξοδα: ${stats.cost30.toFixed(2)}€</div>
-          <div class="stat-sub">Κέρδος: <span class="${getProfitClass(stats.profit30)}">${stats.profit30.toFixed(2)}€</span></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Τελευταίοι 12 μήνες</div>
-          <div class="stat-sub">Έσοδα: ${stats.revenue365.toFixed(2)}€</div>
-          <div class="stat-sub">Έξοδα: ${stats.cost365.toFixed(2)}€</div>
-          <div class="stat-sub">Κέρδος: <span class="${getProfitClass(stats.profit365)}">${stats.profit365.toFixed(2)}€</span></div>
-        </div>
-      </div>
-      <canvas id="tasksFinanceChart" height="180"></canvas>
-    </div>
 
     <div class="dashboard-grid" style="margin-bottom:16px;">
       <div class="stat-card">
@@ -1113,48 +1215,19 @@ function renderDashboard(){
         <h3>Κατανομή εργασιών ανά τύπο</h3>
         <canvas id="taskTypeChart" height="180"></canvas>
       </div>
+      <div class="chart-wrapper">
+        <h3>Έσοδα / Έξοδα / Κέρδος από εργασίες</h3>
+        <canvas id="incomeChart" height="220"></canvas>
+        <div class="muted" style="font-size:11px;margin-top:4px;">
+          Τρέχων μήνας, τελευταίος μήνας (30 ημέρες) και τελευταίος χρόνος (365 ημέρες).
+        </div>
+      </div>
     </div>
   `;
 
-  drawTasksFinanceChart(stats);
   drawProfitChart();
   drawTaskTypeChart();
-}
-
-function drawTasksFinanceChart(stats){
-  const ctx = document.getElementById("tasksFinanceChart");
-  if(!ctx) return;
-  if(tasksFinanceChartInstance) tasksFinanceChartInstance.destroy();
-
-  const labels = ["Σύνολο","30 ημέρες","12 μήνες"];
-  const revenueData = [stats.revenueAll, stats.revenue30, stats.revenue365];
-  const costData = [stats.costAll, stats.cost30, stats.cost365];
-  const profitData = [stats.profitAll, stats.profit30, stats.profit365];
-
-  const profitColors = profitData.map(v=>{
-    if(v > 20) return "#16a34a";   // πράσινο
-    if(v < -20) return "#dc2626";  // κόκκινο
-    return "#f97316";              // πορτοκαλί/κίτρινο
-  });
-
-  tasksFinanceChartInstance = new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels,
-      datasets:[
-        {label:"Έσοδα (€)", data: revenueData},
-        {label:"Έξοδα (€)", data: costData},
-        {label:"Κέρδος (€)", data: profitData, backgroundColor: profitColors}
-      ]
-    },
-    options:{
-      responsive:true,
-      plugins:{legend:{position:"top"}},
-      scales:{
-        y:{beginAtZero:true}
-      }
-    }
-  });
+  drawIncomeChart();
 }
 
 function drawProfitChart(){
@@ -1221,6 +1294,80 @@ function drawTaskTypeChart(){
   });
 }
 
+function drawIncomeChart(){
+  const ctx = document.getElementById("incomeChart");
+  if(!ctx) return;
+  if(incomeChartInstance) incomeChartInstance.destroy();
+
+  const now = new Date();
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const start30 = new Date(now.getTime() - 29*24*60*60*1000);
+  const start365 = new Date(now.getTime() - 364*24*60*60*1000);
+
+  const buckets = {
+    month: {exp:0, rev:0},
+    d30: {exp:0, rev:0},
+    y1: {exp:0, rev:0}
+  };
+
+  tasks.forEach(t=>{
+    const d = parseISODate(t.date);
+    if(!d) return;
+    const cost = Number(t.costTotal || 0);
+    const price = Number(t.price || 0);
+
+    if(d >= startMonth){
+      buckets.month.exp += cost;
+      buckets.month.rev += price;
+    }
+    if(d >= start30){
+      buckets.d30.exp += cost;
+      buckets.d30.rev += price;
+    }
+    if(d >= start365){
+      buckets.y1.exp += cost;
+      buckets.y1.rev += price;
+    }
+  });
+
+  const labels = ["Τρέχων μήνας","Τελευταίος μήνας","Τελευταίος χρόνος"];
+  const expenses = [
+    buckets.month.exp,
+    buckets.d30.exp,
+    buckets.y1.exp
+  ];
+  const revenues = [
+    buckets.month.rev,
+    buckets.d30.rev,
+    buckets.y1.rev
+  ];
+  const profits = revenues.map((r,i)=> r - expenses[i]);
+
+  const profitColors = profits.map(p=>{
+    if(p > 20) return "#16a34a";      // κέρδος – πράσινο
+    if(p < -20) return "#dc2626";     // ζημιά – κόκκινο
+    return "#f97316";                 // σχεδόν μηδέν – πορτοκαλί/κίτρινο
+  });
+
+  incomeChartInstance = new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels,
+      datasets:[
+        { label:"Έξοδα", data:expenses },
+        { label:"Έσοδα", data:revenues },
+        { label:"Κέρδος", data:profits, backgroundColor:profitColors }
+      ]
+    },
+    options:{
+      responsive:true,
+      scales:{
+        y:{beginAtZero:true}
+      }
+    }
+  });
+}
+
 /* ------------ PAGE RENDERING ------------ */
 function loadPage(page){
   const main = document.getElementById("mainContent");
@@ -1235,10 +1382,10 @@ function loadPage(page){
   if(page==="customers"){
     html = `
       <h1>Πελάτες</h1>
-      <div class="subtitle">Καταχώρηση & αναζήτηση πελατών (cloud Firestore).</div>
+      <div class="subtitle">Καταχώρηση, αναζήτηση & επεξεργασία πελατών.</div>
 
       <div class="card">
-        <h3>Νέος πελάτης</h3>
+        <h3>Νέος / Επεξεργασία πελάτη</h3>
         <label>Ονοματεπώνυμο</label>
         <input id="c_name" placeholder="π.χ. Γιάννης Παπαδόπουλος"/>
 
@@ -1282,10 +1429,10 @@ function loadPage(page){
   if(page==="tasks"){
     html = `
       <h1>Εργασίες</h1>
-      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις, με παρακολούθηση κόστους & εσόδων.</div>
+      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις με κόστος & τιμή προς πελάτη.</div>
 
       <div class="card">
-        <h3>Νέα εργασία</h3>
+        <h3>Νέα / Επεξεργασία εργασίας</h3>
         <label>Πελάτης</label>
         <select id="t_customer"></select>
 
@@ -1371,10 +1518,10 @@ function loadPage(page){
   if(page==="project"){
     html = `
       <h1>Διαχείριση έργου</h1>
-      <div class="subtitle">Υπολογισμός κόστους ανά έργο.</div>
+      <div class="subtitle">Υπολογισμός κόστους ανά έργο, με δυνατότητα επεξεργασίας.</div>
 
       <div class="card">
-        <h3>Νέο έργο</h3>
+        <h3>Νέο / Επεξεργασία έργου</h3>
 
         <label>Πελάτης</label>
         <select id="proj_customer"></select>
@@ -1409,7 +1556,7 @@ function loadPage(page){
 
         <div id="proj_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Βοηθός: 0.00 €)</div>
 
-        <div style="margin-top:10px;">
+        <div style="margin-top:10px%;">
           <button class="btn small" id="proj_save_btn">Αποθήκευση</button>
           <button class="btn secondary small" id="proj_clear_btn">Καθαρισμός</button>
         </div>
@@ -1444,7 +1591,7 @@ function loadPage(page){
       <div class="subtitle">Μελέτες BTU & προτάσεις κλιματιστικών, συνδεδεμένες με πελάτες και έργα.</div>
 
       <div class="card">
-        <h3>Νέα μελέτη</h3>
+        <h3>Νέα / Επεξεργασία μελέτης</h3>
 
         <label>Τίτλος μελέτης</label>
         <input id="study_title" placeholder="π.χ. Μελέτη διαμερίσματος 85m²"/>
