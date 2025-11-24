@@ -1,4 +1,304 @@
 /* -------------------------
+   Firebase Initialization
+--------------------------*/
+const firebaseConfig = {
+  apiKey: "AIzaSyAJlPDZktoQmDUIwQrCBsH_GLEhn5N6owE",
+  authDomain: "mouhtis-suite.firebaseapp.com",
+  projectId: "mouhtis-suite",
+  storageBucket: "mouhtis-suite.firebasestorage.app",
+  messagingSenderId: "1093547214312",
+  appId: "1:1093547214312:web:83cc116f17b031f2ef105d",
+  measurementId: "G-84HEW3XYX1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* -------------------------
+   SIMPLE HELPERS
+--------------------------*/
+function $(s) { return document.querySelector(s); }
+function $all(s) { return Array.from(document.querySelectorAll(s)); }
+
+/* -------------------------
+   LOGIN
+--------------------------*/
+$("#loginBtn").onclick = () => {
+  const pass = $("#loginPass").value.trim();
+  if (pass === "fgb0911+") {
+    $("#loginScreen").style.display = "none";
+    loadPage("dashboard");
+  } else {
+    alert("Λάθος κωδικός");
+  }
+};
+
+/* -------------------------
+   GLOBAL STATE
+--------------------------*/
+let customers = [];
+let tasks = [];
+let projects = [];
+let studies = [];
+
+let profitChartInstance = null;
+let taskTypeChartInstance = null;
+
+/* -------------------------
+   DATE HELPERS
+--------------------------*/
+function parseISODate(d) {
+  if (!d) return null;
+  const p = d.split("-");
+  if (p.length !== 3) return null;
+  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+}
+
+function sameMonthYear(dateObj, ref) {
+  return dateObj &&
+    dateObj.getMonth() === ref.getMonth() &&
+    dateObj.getFullYear() === ref.getFullYear();
+}
+
+function sameYear(dateObj, ref) {
+  return dateObj && dateObj.getFullYear() === ref.getFullYear();
+}
+
+/* -------------------------
+   LOAD DATA FROM FIRESTORE
+--------------------------*/
+async function loadCustomers() {
+  const snap = await db.collection("customers").orderBy("createdAt", "desc").get();
+  customers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderCustomerList();
+}
+
+async function loadTasks() {
+  const snap = await db.collection("tasks").orderBy("createdAt", "desc").get();
+  tasks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderTaskList();
+}
+
+async function loadProjects() {
+  const snap = await db.collection("projects").orderBy("createdAt", "desc").get();
+  projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderProjectList();
+}
+
+async function loadStudies() {
+  const snap = await db.collection("studies").orderBy("createdAt", "desc").get();
+  studies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderStudyList();
+}
+
+/* -------------------------
+   SELECT POPULATION HELPERS
+--------------------------*/
+function fillCustomerSelect(selId) {
+  const sel = $("#" + selId);
+  if (!sel) return;
+
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">— Επιλογή —</option>`;
+
+  customers.forEach(c => {
+    const op = document.createElement("option");
+    op.value = c.id;
+    op.textContent = c.name;
+    sel.appendChild(op);
+  });
+
+  if (prev) sel.value = prev;
+}
+
+function fillProjectSelect(selId) {
+  const sel = $("#" + selId);
+  if (!sel) return;
+
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">— Χωρίς έργο —</option>`;
+
+  projects.forEach(p => {
+    const op = document.createElement("option");
+    op.value = p.id;
+    op.textContent = p.title;
+    sel.appendChild(op);
+  });
+
+  if (prev) sel.value = prev;
+}
+
+/* -------------------------
+   CUSTOMERS CRUD
+--------------------------*/
+async function saveCustomer() {
+  const name = $("#c_name").value.trim();
+  const phone = $("#c_phone").value.trim();
+  const email = $("#c_email").value.trim();
+  const address = $("#c_address").value.trim();
+  const area = $("#c_area").value.trim();
+  const notes = $("#c_notes").value.trim();
+  const msg = $("#c_msg");
+
+  if (!name) {
+    msg.textContent = "Συμπλήρωσε όνομα.";
+    return;
+  }
+
+  msg.textContent = "Αποθήκευση...";
+
+  try {
+    const data = {
+      name, phone, email, address, area, notes,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    const ref = await db.collection("customers").add(data);
+    customers.unshift({ id: ref.id, ...data });
+
+    msg.textContent = "Αποθηκεύτηκε.";
+    $("#c_name").value = "";
+    $("#c_phone").value = "";
+    $("#c_email").value = "";
+    $("#c_address").value = "";
+    $("#c_area").value = "";
+    $("#c_notes").value = "";
+    renderCustomerList();
+  } catch (e) {
+    msg.textContent = "Σφάλμα.";
+  }
+}
+
+async function deleteCustomer(id) {
+  if (!confirm("Να διαγραφεί;")) return;
+
+  await db.collection("customers").doc(id).delete();
+  customers = customers.filter(c => c.id !== id);
+  renderCustomerList();
+}
+
+function renderCustomerList() {
+  const wrap = $("#customers_list");
+  if (!wrap) return;
+
+  const q = ($("#customers_search")?.value || "").toLowerCase();
+  let arr = customers.slice();
+
+  if (q) {
+    arr = arr.filter(c =>
+      (c.name || "").toLowerCase().includes(q) ||
+      (c.phone || "").toLowerCase().includes(q) ||
+      (c.address || "").toLowerCase().includes(q) ||
+      (c.area || "").toLowerCase().includes(q) ||
+      (c.email || "").toLowerCase().includes(q)
+    );
+  }
+
+  if (!arr.length) {
+    wrap.innerHTML = `<div class="muted">Δεν υπάρχουν πελάτες.</div>`;
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Όνομα</th>
+          <th>Τηλ</th>
+          <th>Περιοχή</th>
+          <th>Διεύθυνση</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  arr.forEach(c => {
+    html += `
+      <tr>
+        <td>${c.name || ""}</td>
+        <td>${c.phone || ""}</td>
+        <td>${c.area || ""}</td>
+        <td>${c.address || ""}</td>
+        <td><span class="link" data-del="${c.id}">Διαγραφή</span></td>
+      </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  $all("[data-del]").forEach(el => {
+    el.onclick = () => deleteCustomer(el.getAttribute("data-del"));
+  });
+}
+
+/* -------------------------
+   TASKS CRUD (με έξοδα + τιμή)
+--------------------------*/
+function calcTaskTotalLocal() {
+  const unit = parseFloat($("#t_unitCost").value || 0);
+  const mat = parseFloat($("#t_materialsCost").value || 0);
+  const hrs = parseFloat($("#t_laborHours").value || 0);
+  const rate = parseFloat($("#t_laborRate").value || 0);
+
+  const labor = hrs * rate;
+  const total = unit + mat + labor;
+
+  $("#t_total_view").textContent =
+    `Συνολικό κόστος: ${total.toFixed(2)}€ (Εργασία: ${labor.toFixed(2)}€)`;
+
+  return total;
+}
+
+async function saveTask() {
+  const customerId = $("#t_customer").value;
+  const type = $("#t_type").value;
+  const title = $("#t_title").value.trim();
+  const date = $("#t_date").value;
+  const status = $("#t_status").value;
+  const notes = $("#t_notes").value.trim();
+
+  const unit = parseFloat($("#t_unitCost").value || 0);
+  const mat = parseFloat($("#t_materialsCost").value || 0);
+  const hrs = parseFloat($("#t_laborHours").value || 0);
+  const rate = parseFloat($("#t_laborRate").value || 0);
+  const price = parseFloat($("#t_price").value || 0);
+
+  const labor = hrs * rate;
+  const total = unit + mat + labor;
+
+  const msg = $("#t_msg");
+
+  if (!title) {
+    msg.textContent = "Συμπλήρωσε τίτλο.";
+    return;
+  }
+
+  msg.textContent = "Αποθήκευση...";
+
+  try {
+    const data = {
+      customerId, type, title, date, status, notes,
+      unitCost: unit,
+      materialsCost: mat,
+      laborHours: hrs,
+      laborRate: rate,
+      laborCost: labor,
+      costTotal: total,
+      priceToClient: price,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    const ref = await db.collection("tasks").add(data);
+    tasks.unshift({ id: ref.id, ...data });
+
+    msg.textContent = "Αποθηκεύτηκε.";
+    renderTaskList();
+  } catch (e) {
+    msg.textContent = "Σφάλμα.";
+  }
+}
+/* -------------------------
    RENDER TASK LIST
 --------------------------*/
 function renderTaskList() {
