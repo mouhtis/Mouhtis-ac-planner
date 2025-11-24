@@ -15,26 +15,46 @@
 
 <style>
   :root{
-    --bg:#f5f7fa;
-    --card:#ffffff;
-    --border:#e5e7eb;
-    --text:#111827;
+    --bg:#0f172a;
+    --bg-elevated:#020617;
+    --bg-soft:#0b1220;
+    --card:#020617;
+    --card-soft:#020617;
+    --border:rgba(148, 163, 184, 0.25);
+    --border-soft:rgba(148, 163, 184, 0.18);
+    --text:#e5e7eb;
+    --text-soft:#9ca3af;
     --muted:#6b7280;
-    --accent:#0b74de;
-    --accent-dark:#095fb6;
-    --accent-soft:#dbeafe;
-    --sidebar-bg:#0d1b2a;
-    --sidebar-bg2:#1b263b;
-    --good:#16a34a;
-    --bad:#dc2626;
+    --accent:#38bdf8;
+    --accent-soft:rgba(56,189,248,0.16);
+    --accent-soft-strong:rgba(56,189,248,0.22);
+    --accent-dark:#0ea5e9;
+    --sidebar-bg:radial-gradient(circle at 0% 0%, #0f172a 0, #020617 55%, #020617 100%);
+    --sidebar-bg-solid:#020617;
+    --sidebar-accent:#111827;
+    --good:#22c55e;
+    --bad:#ef4444;
+    --warn:#f97316;
+    --shadow-soft:0 18px 45px rgba(15,23,42,0.65);
+    --shadow-card:0 16px 40px rgba(15,23,42,0.7);
+    --radius-lg:18px;
+    --radius-md:12px;
+    --radius-pill:999px;
+    --blur-strong:24px;
+    --transition-fast:150ms ease-out;
+    --transition-med:220ms ease-out;
   }
 
-  *{box-sizing:border-box;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+  *{
+    box-sizing:border-box;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+  }
 
   body {
     margin: 0;
-    background: var(--bg);
+    background: radial-gradient(circle at top,#0b1120,#020617 55%,#000 100%);
     color: var(--text);
+    min-height:100vh;
   }
 
   /* LOGIN */
@@ -45,228 +65,431 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background: radial-gradient(circle at top,#e0f2fe,#f5f6fa);
+    background:
+      radial-gradient(circle at top,#1d283a 0,#020617 55%,#000 100%);
     z-index: 9999;
   }
+  #loginScreen::before{
+    content:"";
+    position:absolute;
+    inset:15%;
+    background:
+      radial-gradient(circle at 0 0,rgba(56,189,248,0.14),transparent 55%),
+      radial-gradient(circle at 100% 0,rgba(34,197,94,0.1),transparent 55%);
+    filter:blur(45px);
+    opacity:0.9;
+    pointer-events:none;
+  }
+  #loginScreen > *{
+    position:relative;
+    z-index:1;
+  }
   #loginScreen h1 {
-    font-size: 26px;
-    margin-bottom: 10px;
-    color: var(--accent);
+    font-size: 28px;
+    margin-bottom: 6px;
+    color: #f9fafb;
+    letter-spacing:0.03em;
   }
   #loginScreen .subtitle{
     font-size:13px;
-    color:var(--muted);
+    color:var(--text-soft);
     margin-bottom:18px;
   }
   #loginPass {
-    padding: 10px 12px;
-    width: 240px;
-    border-radius: 10px;
-    border: 1px solid #d1d5db;
-    font-size: 15px;
+    padding: 11px 14px;
+    width: 260px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.4);
+    font-size: 14px;
     text-align:center;
+    background: radial-gradient(circle at top left,#020617,#020617);
+    color:#e5e7eb;
+    box-shadow:0 0 0 1px rgba(15,23,42,0.7);
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast),
+      background var(--transition-fast);
+  }
+  #loginPass::placeholder{
+    color:#64748b;
   }
   #loginPass:focus{
     outline:none;
     border-color:var(--accent);
-    box-shadow:0 0 0 1px var(--accent-soft);
+    box-shadow:
+      0 0 0 1px var(--accent-dark),
+      0 0 0 10px rgba(56,189,248,0.18);
+    background: radial-gradient(circle at top,#020617,#020617);
+    transform:translateY(-1px);
   }
   #loginBtn {
-    padding: 8px 18px;
-    margin-top: 12px;
-    background: var(--accent);
+    padding: 9px 22px;
+    margin-top: 14px;
+    background: radial-gradient(circle at 0 0,#22d3ee,#0ea5e9);
     color: white;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     cursor: pointer;
     font-weight:600;
+    font-size:14px;
+    letter-spacing:0.03em;
+    box-shadow:0 18px 35px rgba(8,47,73,0.85);
+    border:1px solid rgba(125,211,252,0.6);
+    transition:
+      transform var(--transition-med),
+      box-shadow var(--transition-med),
+      filter var(--transition-med),
+      background var(--transition-med);
   }
-  #loginBtn:hover { background: var(--accent-dark); }
+  #loginBtn:hover {
+    background: radial-gradient(circle at 0 0,#06b6d4,#0284c7);
+    transform:translateY(-1.5px);
+    box-shadow:0 22px 45px rgba(8,47,73,0.95);
+    filter:brightness(1.03);
+  }
+  #loginBtn:active{
+    transform:translateY(0px) scale(0.99);
+    box-shadow:0 10px 30px rgba(15,23,42,0.9);
+  }
 
-  /* SIDEBAR */
+  /* LAYOUT */
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    width: 230px;
+    width: 240px;
     height: 100vh;
     background: var(--sidebar-bg);
     color: white;
-    padding-top: 20px;
+    padding: 18px 16px 18px;
+    border-right:1px solid rgba(148,163,184,0.25);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(var(--blur-strong));
   }
   .sidebar h2 {
-    text-align: center;
-    margin-bottom: 16px;
+    text-align: left;
+    margin: 4px 8px 18px;
     font-weight: 600;
-    font-size:18px;
+    font-size:17px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#9ca3af;
   }
+
   .menu-btn {
-    width: 90%;
-    margin: 6px auto;
-    padding: 10px 12px;
-    background: var(--sidebar-bg2);
-    color: white;
-    border: none;
-    border-radius: 8px;
+    width: 100%;
+    margin: 4px 0;
+    padding: 9px 11px;
+    background: transparent;
+    color: #e5e7eb;
+    border: 1px solid transparent;
+    border-radius: 999px;
     text-align: left;
     cursor: pointer;
     display:flex;
     align-items:center;
-    gap:8px;
-    font-size:14px;
+    gap:9px;
+    font-size:13px;
+    line-height:1.2;
+    position:relative;
+    transition:
+      background var(--transition-med),
+      border-color var(--transition-med),
+      box-shadow var(--transition-med),
+      transform var(--transition-fast),
+      color var(--transition-med);
   }
-  .menu-btn span.icon{width:20px;text-align:center;}
+  .menu-btn span.icon{
+    width:22px;
+    height:22px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    background:rgba(15,23,42,0.85);
+    box-shadow:0 0 0 1px rgba(15,23,42,0.9);
+  }
   .menu-btn:hover {
-    background: #415a77;
+    background: radial-gradient(circle at 0 0,var(--sidebar-accent),#020617);
+    box-shadow:0 10px 32px rgba(15,23,42,0.85);
+    transform:translateY(-0.5px);
+    border-color:rgba(75,85,99,0.7);
   }
   .menu-btn.active{
-    background:#415a77;
+    background: radial-gradient(circle at 0 0,var(--accent-soft-strong),rgba(15,23,42,0.95));
+    border-color:rgba(56,189,248,0.6);
+    box-shadow:0 16px 45px rgba(8,47,73,0.8);
+    color:#f9fafb;
+  }
+  .menu-btn.active span.icon{
+    background:radial-gradient(circle at 0 0,#22d3ee,#0ea5e9);
+    box-shadow:0 0 0 1px rgba(56,189,248,0.7);
   }
 
-  /* MAIN */
   .main {
-    margin-left: 250px;
-    padding: 20px 18px 40px;
-    max-width:1100px;
+    margin-left: 260px;
+    padding: 22px 20px 40px;
+    max-width:1150px;
+    color:var(--text);
   }
   h1 {
     margin: 0 0 6px 0;
-    font-size:22px;
+    font-size:23px;
+    letter-spacing:0.03em;
   }
   h2{margin:0 0 8px 0;font-size:18px;}
-  h3{margin:0 0 6px 0;font-size:15px;}
+  h3{
+    margin:0 0 8px 0;
+    font-size:14px;
+    letter-spacing:0.02em;
+    text-transform:uppercase;
+    color:#9ca3af;
+  }
   .subtitle{
     font-size:13px;
-    color:var(--muted);
-    margin-bottom:10px;
+    color:var(--text-soft);
+    margin-bottom:12px;
   }
 
+  /* CARDS */
   .card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 16px;
+    background: radial-gradient(circle at 0 0,rgba(15,23,42,0.95),rgba(15,23,42,1));
+    border-radius: var(--radius-lg);
+    padding: 16px 16px 14px;
     margin-bottom: 18px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-card);
     border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(circle at 0 0,rgba(56,189,248,0.06),transparent 55%),
+      radial-gradient(circle at 100% 0,rgba(34,197,94,0.05),transparent 55%);
+    opacity:0.95;
+    pointer-events:none;
+  }
+  .card > *{
+    position:relative;
+    z-index:1;
   }
 
-  .btn {
-    padding: 8px 16px;
-    background: var(--accent);
-    color: white;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    margin: 4px 4px 4px 0;
-    font-weight: 600;
-    font-size:13px;
+  .dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:14px;
   }
-  .btn:hover { background: var(--accent-dark); }
+  .stat-card{
+    background: radial-gradient(circle at 0 0,rgba(15,23,42,0.98),rgba(15,23,42,1));
+    border-radius: var(--radius-lg);
+    padding:12px 14px;
+    border:1px solid var(--border-soft);
+    box-shadow:0 16px 40px rgba(15,23,42,0.9);
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(circle at 0 0,rgba(56,189,248,0.12),transparent 55%);
+    opacity:0;
+    transition:opacity var(--transition-med);
+    pointer-events:none;
+  }
+  .stat-card:hover::before{
+    opacity:1;
+  }
+
+  .stat-label{
+    font-size:11px;
+    color:var(--text-soft);
+    margin-bottom:4px;
+    text-transform:uppercase;
+    letter-spacing:0.09em;
+  }
+  .stat-value{
+    font-size:22px;
+    font-weight:700;
+  }
+  .stat-sub{
+    font-size:11px;
+    color:var(--text-soft);
+    margin-top:4px;
+  }
+  .stat-good{color:var(--good);}
+  .stat-bad{color:var(--bad);}
+
+  /* BUTTONS */
+  .btn {
+    padding: 7px 15px;
+    background: radial-gradient(circle at 0 0,#22d3ee,#0ea5e9);
+    color: white;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(56,189,248,0.8);
+    cursor: pointer;
+    margin: 4px 6px 4px 0;
+    font-weight: 500;
+    font-size:12px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    box-shadow:0 14px 35px rgba(8,47,73,0.9);
+    transition:
+      transform var(--transition-med),
+      box-shadow var(--transition-med),
+      background var(--transition-med),
+      filter var(--transition-med);
+  }
+  .btn:hover {
+    background: radial-gradient(circle at 0 0,#06b6d4,#0284c7);
+    transform:translateY(-1px);
+    box-shadow:0 18px 42px rgba(8,47,73,1);
+    filter:brightness(1.02);
+  }
+  .btn:active{
+    transform:translateY(0) scale(0.99);
+    box-shadow:0 10px 30px rgba(15,23,42,0.9);
+  }
   .btn.secondary{
-    background:#fff;
-    color:var(--accent);
-    border:1px solid var(--accent-soft);
+    background:rgba(15,23,42,0.9);
+    color:#e5e7eb;
+    border:1px solid rgba(148,163,184,0.55);
+    box-shadow:0 12px 30px rgba(15,23,42,0.9);
+    text-transform:none;
+    letter-spacing:0.02em;
   }
   .btn.secondary:hover{
-    background:var(--accent-soft);
+    background:rgba(30,64,175,0.7);
+    border-color:rgba(129,140,248,0.7);
   }
-  .btn.small{font-size:12px;padding:5px 10px;}
+  .btn.small{
+    font-size:11px;
+    padding:6px 13px;
+  }
 
   label{
     display:block;
-    font-size:12px;
-    color:var(--muted);
-    margin-top:6px;
-    margin-bottom:2px;
+    font-size:11px;
+    color:var(--text-soft);
+    margin-top:7px;
+    margin-bottom:3px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
   }
   input, select, textarea{
     width:100%;
     padding:7px 9px;
-    border-radius:8px;
-    border:1px solid var(--border);
+    border-radius:10px;
+    border:1px solid rgba(148,163,184,0.5);
     font-size:13px;
     outline:none;
+    background:rgba(15,23,42,0.9);
+    color:#e5e7eb;
+    box-shadow:0 0 0 1px rgba(15,23,42,0.85);
+    transition:
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      background var(--transition-fast),
+      transform var(--transition-fast);
   }
-  textarea{resize:vertical;min-height:60px;}
+  textarea{resize:vertical;min-height:70px;}
+  input::placeholder,
+  textarea::placeholder{
+    color:#6b7280;
+  }
   input:focus, select:focus, textarea:focus{
     border-color:var(--accent);
-    box-shadow:0 0 0 1px var(--accent-soft);
-    background:#fff;
+    box-shadow:
+      0 0 0 1px var(--accent-dark),
+      0 0 0 10px rgba(56,189,248,0.14);
+    background:rgba(15,23,42,0.95);
+    transform:translateY(-1px);
   }
 
   .search-box {
-    padding: 9px 12px;
+    padding: 9px 14px;
     width: 100%;
-    max-width: 400px;
+    max-width: 380px;
     border-radius: 999px;
-    border: 1px solid #d1d5db;
+    border: 1px solid rgba(148,163,184,0.7);
     margin-bottom: 10px;
     font-size:13px;
+    background:rgba(15,23,42,0.9);
+    color:#e5e7eb;
+    box-shadow:0 10px 30px rgba(15,23,42,0.95);
   }
 
-  .muted{font-size:12px;color:var(--muted);}
+  .muted{font-size:12px;color:var(--text-soft);}
 
   table{
     width:100%;
     border-collapse:collapse;
-    font-size:13px;
+    font-size:12px;
   }
   th,td{
-    padding:6px 4px;
-    border-bottom:1px solid #e5e7eb;
+    padding:7px 4px;
+    border-bottom:1px solid rgba(31,41,55,0.9);
     text-align:left;
   }
   th{
-    font-size:12px;
-    color:var(--muted);
+    font-size:11px;
+    color:var(--text-soft);
     font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+  tr:nth-child(even) td{
+    background:rgba(15,23,42,0.75);
   }
 
   .link{
     font-size:12px;
     color:var(--accent);
     cursor:pointer;
+    text-decoration:none;
+    position:relative;
   }
-  .link:hover{text-decoration:underline;}
+  .link::after{
+    content:"";
+    position:absolute;
+    left:0;
+    bottom:-1px;
+    width:0;
+    height:1px;
+    background:var(--accent);
+    transition:width var(--transition-fast);
+  }
+  .link:hover::after{
+    width:100%;
+  }
 
   .pill{
     border-radius:999px;
-    padding:2px 8px;
+    padding:3px 9px;
     font-size:11px;
+    border:1px solid transparent;
   }
-  .pill.green{background:#dcfce7;color:#166534;}
-  .pill.red{background:#fee2e2;color:#b91c1c;}
-  .pill.orange{background:#ffedd5;color:#9a3412;}
-
-  /* DASHBOARD */
-  .dashboard-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:12px;
+  .pill.green{
+    background:rgba(22,163,74,0.18);
+    color:#4ade80;
+    border-color:rgba(34,197,94,0.5);
   }
-  .stat-card{
-    background:var(--card);
-    border-radius:12px;
-    padding:12px 14px;
-    border:1px solid var(--border);
-    box-shadow:0 2px 6px rgba(15,23,42,0.04);
+  .pill.red{
+    background:rgba(248,113,113,0.16);
+    color:#fca5a5;
+    border-color:rgba(239,68,68,0.5);
   }
-  .stat-label{
-    font-size:12px;
-    color:var(--muted);
-    margin-bottom:4px;
+  .pill.orange{
+    background:rgba(251,146,60,0.17);
+    color:#fed7aa;
+    border-color:rgba(234,88,12,0.6);
   }
-  .stat-value{
-    font-size:20px;
-    font-weight:700;
-  }
-  .stat-sub{
-    font-size:11px;
-    color:var(--muted);
-    margin-top:2px;
-  }
-  .stat-good{color:var(--good);}
-  .stat-bad{color:var(--bad);}
 
   .charts-grid{
     display:grid;
@@ -274,29 +497,35 @@
     gap:16px;
   }
   .chart-wrapper{
-    background:var(--card);
-    border-radius:12px;
-    padding:10px 10px 4px;
-    border:1px solid var(--border);
-    box-shadow:0 2px 6px rgba(15,23,42,0.04);
+    background: radial-gradient(circle at 0 0,rgba(15,23,42,1),rgba(15,23,42,0.98));
+    border-radius:var(--radius-lg);
+    padding:12px 12px 8px;
+    border:1px solid var(--border-soft);
+    box-shadow:0 18px 45px rgba(15,23,42,0.95);
   }
   .chart-wrapper h3{
-    font-size:14px;
+    font-size:13px;
     margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:0.07em;
+    color:#9ca3af;
   }
   canvas{
     max-width:100%;
   }
 
-  @media(max-width: 800px){
+  @media(max-width: 900px){
     .sidebar{
       position:relative;
       width:100%;
       height:auto;
+      border-right:none;
+      border-bottom:1px solid rgba(148,163,184,0.35);
+      padding-bottom:12px;
     }
     .main{
       margin-left:0;
-      padding:14px 12px 28px;
+      padding:16px 12px 28px;
     }
   }
 </style>
@@ -370,13 +599,6 @@ let projects = [];
 let studies = [];
 let profitChartInstance = null;
 let taskTypeChartInstance = null;
-let incomeChartInstance = null;
-
-/* IDs για επεξεργασία */
-let editingCustomerId = null;
-let editingTaskId = null;
-let editingProjectId = null;
-let editingStudyId = null;
 
 /* ------------ HELPERS ------------ */
 function $(sel){return document.querySelector(sel);}
@@ -430,11 +652,7 @@ function renderCustomerList(){
       <td>${c.phone||""}</td>
       <td>${c.area||""}</td>
       <td>${c.address||""}</td>
-      <td>
-        <span class="link" data-c-edit="${c.id}">Επεξεργασία</span>
-        &nbsp;•&nbsp;
-        <span class="link" data-del="${c.id}">Διαγραφή</span>
-      </td>
+      <td><span class="link" data-del="${c.id}">Διαγραφή</span></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -443,23 +661,6 @@ function renderCustomerList(){
   $all('[data-del]').forEach(el=>{
     el.onclick = ()=> deleteCustomer(el.getAttribute('data-del'));
   });
-  $all('[data-c-edit]').forEach(el=>{
-    el.onclick = ()=> startEditCustomer(el.getAttribute('data-c-edit'));
-  });
-}
-
-function startEditCustomer(id){
-  const c = customers.find(c=>c.id===id);
-  if(!c) return;
-  editingCustomerId = id;
-  $("#c_name").value = c.name || "";
-  $("#c_phone").value = c.phone || "";
-  $("#c_email").value = c.email || "";
-  $("#c_address").value = c.address || "";
-  $("#c_area").value = c.area || "";
-  $("#c_notes").value = c.notes || "";
-  $("#c_msg").textContent = "Επεξεργασία πελάτη. Πάτησε 'Καθαρισμός' για ακύρωση.";
-  $("#c_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveCustomer(){
@@ -475,24 +676,14 @@ async function saveCustomer(){
     return;
   }
   msgEl.textContent = "Αποθήκευση...";
-
-  const data = { name, phone, email, address, area, notes };
-
   try{
-    if(editingCustomerId){
-      await db.collection("customers").doc(editingCustomerId).update(data);
-      const idx = customers.findIndex(c=>c.id===editingCustomerId);
-      if(idx>-1) customers[idx] = {...customers[idx], ...data};
-      msgEl.textContent = "Ενημερώθηκε.";
-    }else{
-      const fullData = {
-        ...data,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      const ref = await db.collection("customers").add(fullData);
-      customers.unshift({id:ref.id, ...fullData});
-      msgEl.textContent = "Αποθηκεύτηκε.";
-    }
+    const data = {
+      name, phone, email, address, area, notes,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await db.collection("customers").add(data);
+    customers.unshift({id:ref.id, ...data});
+    msgEl.textContent = "Αποθηκεύτηκε.";
     clearCustomerForm(false);
     renderCustomerList();
   }catch(e){
@@ -508,9 +699,6 @@ function clearCustomerForm(clearMsg=true){
   $("#c_address").value="";
   $("#c_area").value="";
   $("#c_notes").value="";
-  editingCustomerId = null;
-  const saveBtn = $("#c_save_btn");
-  if(saveBtn) saveBtn.textContent = "Αποθήκευση";
   if(clearMsg) $("#c_msg").textContent="";
 }
 
@@ -529,7 +717,7 @@ async function deleteCustomer(id){
   }
 }
 
-/* ------------ TASKS CRUD (με κόστος + Τιμή) ------------ */
+/* ------------ TASKS CRUD (με κόστος) ------------ */
 async function loadTasks(){
   try{
     const snap = await db.collection("tasks").orderBy("createdAt","desc").get();
@@ -573,7 +761,7 @@ function renderTaskList(){
     wrap.innerHTML = '<div class="muted">Δεν υπάρχουν εργασίες.</div>';
     return;
   }
-  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κόστος (€)</th><th>Τιμή (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κόστος (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
   arr.forEach(t=>{
     const client = customers.find(c=>c.id===t.customerId);
     const typeLabel =
@@ -585,20 +773,14 @@ function renderTaskList(){
       t.status==="inprogress" ? '<span class="pill orange">Σε εξέλιξη</span>' :
       '<span class="pill red">Ανοιχτή</span>';
     const costTotal = Number(t.costTotal || 0);
-    const price = Number(t.price || 0);
     html += `<tr>
       <td>${t.title||""}</td>
       <td>${client?client.name:"—"}</td>
       <td>${typeLabel}</td>
       <td>${t.date||""}</td>
       <td>${costTotal.toFixed(2)}</td>
-      <td>${price.toFixed(2)}</td>
       <td>${pill}</td>
-      <td>
-        <span class="link" data-task-edit="${t.id}">Επεξεργασία</span>
-        &nbsp;•&nbsp;
-        <span class="link" data-task-del="${t.id}">Διαγραφή</span>
-      </td>
+      <td><span class="link" data-task-del="${t.id}">Διαγραφή</span></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -607,29 +789,6 @@ function renderTaskList(){
   $all('[data-task-del]').forEach(el=>{
     el.onclick = ()=> deleteTask(el.getAttribute('data-task-del'));
   });
-  $all('[data-task-edit]').forEach(el=>{
-    el.onclick = ()=> startEditTask(el.getAttribute('data-task-edit'));
-  });
-}
-
-function startEditTask(id){
-  const t = tasks.find(t=>t.id===id);
-  if(!t) return;
-  editingTaskId = id;
-  $("#t_customer").value = t.customerId || "";
-  $("#t_type").value = t.type || "installation";
-  $("#t_title").value = t.title || "";
-  $("#t_date").value = t.date || "";
-  $("#t_status").value = t.status || "open";
-  $("#t_notes").value = t.notes || "";
-  $("#t_unitCost").value = t.unitCost ?? "";
-  $("#t_materialsCost").value = t.materialsCost ?? "";
-  $("#t_laborHours").value = t.laborHours ?? "";
-  $("#t_laborRate").value = t.laborRate ?? "10";
-  $("#t_price").value = t.price ?? "";
-  calcTaskTotalLocal();
-  $("#t_msg").textContent = "Επεξεργασία εργασίας. Πάτησε 'Καθαρισμός' για ακύρωση.";
-  $("#t_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveTask(){
@@ -643,7 +802,6 @@ async function saveTask(){
   const materialsCost = parseFloat($("#t_materialsCost").value || "0") || 0;
   const laborHours = parseFloat($("#t_laborHours").value || "0") || 0;
   const laborRate = parseFloat($("#t_laborRate").value || "0") || 0;
-  const price = parseFloat($("#t_price").value || "0") || 0;
   const laborCost = laborHours * laborRate;
   const totalCost = unitCost + materialsCost + laborCost;
 
@@ -653,38 +811,25 @@ async function saveTask(){
     return;
   }
   msgEl.textContent = "Αποθήκευση...";
-
-  const data = {
-    customerId,
-    type,
-    title,
-    date,
-    status,
-    notes,
-    unitCost,
-    materialsCost,
-    laborHours,
-    laborRate,
-    laborCost,
-    costTotal: totalCost,
-    price
-  };
-
   try{
-    if(editingTaskId){
-      await db.collection("tasks").doc(editingTaskId).update(data);
-      const idx = tasks.findIndex(t=>t.id===editingTaskId);
-      if(idx>-1) tasks[idx] = {...tasks[idx], ...data};
-      msgEl.textContent = "Ενημερώθηκε.";
-    }else{
-      const fullData = {
-        ...data,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      const ref = await db.collection("tasks").add(fullData);
-      tasks.unshift({id:ref.id, ...fullData});
-      msgEl.textContent = "Αποθηκεύτηκε.";
-    }
+    const data = {
+      customerId,
+      type,
+      title,
+      date,
+      status,
+      notes,
+      unitCost,
+      materialsCost,
+      laborHours,
+      laborRate,
+      laborCost,
+      costTotal: totalCost,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await db.collection("tasks").add(data);
+    tasks.unshift({id:ref.id, ...data});
+    msgEl.textContent = "Αποθηκεύτηκε.";
     clearTaskForm(false);
     renderTaskList();
   }catch(e){
@@ -704,12 +849,8 @@ function clearTaskForm(clearMsg=true){
   $("#t_materialsCost").value="";
   $("#t_laborHours").value="";
   $("#t_laborRate").value="10";
-  $("#t_price").value="";
   const el = $("#t_total_view");
   if(el) el.textContent = "Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)";
-  editingTaskId = null;
-  const btn = $("#t_save_btn");
-  if(btn) btn.textContent = "Αποθήκευση";
   if(clearMsg) $("#t_msg").textContent="";
 }
 
@@ -775,11 +916,7 @@ function renderProjectList(){
       <td>${client?client.name:"—"}</td>
       <td>${p.date||""}</td>
       <td>${total.toFixed(2)}</td>
-      <td>
-        <span class="link" data-proj-edit="${p.id}">Επεξεργασία</span>
-        &nbsp;•&nbsp;
-        <span class="link" data-proj-del="${p.id}">Διαγραφή</span>
-      </td>
+      <td><span class="link" data-proj-del="${p.id}">Διαγραφή</span></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -788,28 +925,6 @@ function renderProjectList(){
   $all('[data-proj-del]').forEach(el=>{
     el.onclick = ()=> deleteProject(el.getAttribute('data-proj-del'));
   });
-  $all('[data-proj-edit]').forEach(el=>{
-    el.onclick = ()=> startEditProject(el.getAttribute('data-proj-edit'));
-  });
-}
-
-function startEditProject(id){
-  const p = projects.find(p=>p.id===id);
-  if(!p) return;
-  editingProjectId = id;
-  $("#proj_customer").value = p.customerId || "";
-  $("#proj_title").value = p.title || "";
-  $("#proj_location").value = p.location || "";
-  $("#proj_date").value = p.date || "";
-  $("#proj_units").value = p.costUnits ?? "";
-  $("#proj_materials").value = p.costMaterials ?? "";
-  $("#proj_helper_hours").value = p.helperHours ?? "";
-  $("#proj_helper_rate").value = p.helperRate ?? "5";
-  $("#proj_other").value = p.costOther ?? "";
-  $("#proj_notes").value = p.notes || "";
-  calcProjectTotalLocal();
-  $("#proj_msg").textContent = "Επεξεργασία έργου. Πάτησε 'Καθαρισμός' για ακύρωση.";
-  $("#proj_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveProject(){
@@ -831,36 +946,24 @@ async function saveProject(){
   const helperCost = h*r;
   const total = units + mats + helperCost + other;
   msgEl.textContent = "Αποθήκευση...";
-
-  const data = {
-    customerId,
-    title,
-    location,
-    date,
-    costUnits: units,
-    costMaterials: mats,
-    helperHours: h,
-    helperRate: r,
-    costOther: other,
-    costTotal: total,
-    notes
-  };
-
   try{
-    if(editingProjectId){
-      await db.collection("projects").doc(editingProjectId).update(data);
-      const idx = projects.findIndex(p=>p.id===editingProjectId);
-      if(idx>-1) projects[idx] = {...projects[idx], ...data};
-      msgEl.textContent = "Ενημερώθηκε.";
-    }else{
-      const fullData = {
-        ...data,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      const ref = await db.collection("projects").add(fullData);
-      projects.unshift({id:ref.id, ...fullData});
-      msgEl.textContent = "Αποθηκεύτηκε.";
-    }
+    const data = {
+      customerId,
+      title,
+      location,
+      date,
+      costUnits: units,
+      costMaterials: mats,
+      helperHours: h,
+      helperRate: r,
+      costOther: other,
+      costTotal: total,
+      notes,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await db.collection("projects").add(data);
+    projects.unshift({id:ref.id, ...data});
+    msgEl.textContent = "Αποθηκεύτηκε.";
     clearProjectForm(false);
     renderProjectList();
   }catch(e){
@@ -881,9 +984,6 @@ function clearProjectForm(clearMsg=true){
   $("#proj_other").value="";
   $("#proj_notes").value="";
   calcProjectTotalLocal();
-  editingProjectId = null;
-  const btn = $("#proj_save_btn");
-  if(btn) btn.textContent = "Αποθήκευση";
   if(clearMsg) $("#proj_msg").textContent="";
 }
 
@@ -961,11 +1061,7 @@ function renderStudyList(){
       <td>${s.title||""}</td>
       <td>${client?client.name:"—"}</td>
       <td>${proj?proj.title:"—"}</td>
-      <td>
-        <span class="link" data-study-edit="${s.id}">Επεξεργασία</span>
-        &nbsp;•&nbsp;
-        <span class="link" data-study-del="${s.id}">Διαγραφή</span>
-      </td>
+      <td><span class="link" data-study-del="${s.id}">Διαγραφή</span></td>
     </tr>`;
   });
   html += '</tbody></table>';
@@ -974,24 +1070,6 @@ function renderStudyList(){
   $all('[data-study-del]').forEach(el=>{
     el.onclick = ()=> deleteStudy(el.getAttribute('data-study-del'));
   });
-  $all('[data-study-edit]').forEach(el=>{
-    el.onclick = ()=> startEditStudy(el.getAttribute('data-study-edit'));
-  });
-}
-
-function startEditStudy(id){
-  const s = studies.find(s=>s.id===id);
-  if(!s) return;
-  editingStudyId = id;
-  $("#study_title").value = s.title || "";
-  $("#study_customer").value = s.customerId || "";
-  $("#study_project").value = s.projectId || "";
-  $("#study_area").value = s.area ?? "";
-  $("#study_usage").value = s.usage || "home";
-  $("#study_ins").value = s.insulation || "";
-  $("#study_summary").value = s.summary || "";
-  $("#study_msg").textContent = "Επεξεργασία μελέτης. Πάτησε 'Καθαρισμός' για ακύρωση.";
-  $("#study_save_btn").textContent = "Ενημέρωση";
 }
 
 async function saveStudy(){
@@ -1008,32 +1086,20 @@ async function saveStudy(){
     return;
   }
   msgEl.textContent = "Αποθήκευση...";
-
-  const data = {
-    title,
-    customerId,
-    projectId,
-    area,
-    usage,
-    insulation: ins,
-    summary
-  };
-
   try{
-    if(editingStudyId){
-      await db.collection("studies").doc(editingStudyId).update(data);
-      const idx = studies.findIndex(s=>s.id===editingStudyId);
-      if(idx>-1) studies[idx] = {...studies[idx], ...data};
-      msgEl.textContent = "Ενημερώθηκε.";
-    }else{
-      const fullData = {
-        ...data,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      const ref = await db.collection("studies").add(fullData);
-      studies.unshift({id:ref.id, ...fullData});
-      msgEl.textContent = "Αποθηκεύτηκε.";
-    }
+    const data = {
+      title,
+      customerId,
+      projectId,
+      area,
+      usage,
+      insulation: ins,
+      summary,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await db.collection("studies").add(data);
+    studies.unshift({id:ref.id, ...data});
+    msgEl.textContent = "Αποθηκεύτηκε.";
     clearStudyForm(false);
     renderStudyList();
   }catch(e){
@@ -1050,9 +1116,6 @@ function clearStudyForm(clearMsg=true){
   $("#study_usage").value="home";
   $("#study_ins").value="";
   $("#study_summary").value="";
-  editingStudyId = null;
-  const btn = $("#study_save_btn");
-  if(btn) btn.textContent = "Αποθήκευση";
   if(clearMsg) $("#study_msg").textContent="";
 }
 
@@ -1215,19 +1278,11 @@ function renderDashboard(){
         <h3>Κατανομή εργασιών ανά τύπο</h3>
         <canvas id="taskTypeChart" height="180"></canvas>
       </div>
-      <div class="chart-wrapper">
-        <h3>Έσοδα / Έξοδα / Κέρδος από εργασίες</h3>
-        <canvas id="incomeChart" height="220"></canvas>
-        <div class="muted" style="font-size:11px;margin-top:4px;">
-          Τρέχων μήνας, τελευταίος μήνας (30 ημέρες) και τελευταίος χρόνος (365 ημέρες).
-        </div>
-      </div>
     </div>
   `;
 
   drawProfitChart();
   drawTaskTypeChart();
-  drawIncomeChart();
 }
 
 function drawProfitChart(){
@@ -1294,80 +1349,6 @@ function drawTaskTypeChart(){
   });
 }
 
-function drawIncomeChart(){
-  const ctx = document.getElementById("incomeChart");
-  if(!ctx) return;
-  if(incomeChartInstance) incomeChartInstance.destroy();
-
-  const now = new Date();
-  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const start30 = new Date(now.getTime() - 29*24*60*60*1000);
-  const start365 = new Date(now.getTime() - 364*24*60*60*1000);
-
-  const buckets = {
-    month: {exp:0, rev:0},
-    d30: {exp:0, rev:0},
-    y1: {exp:0, rev:0}
-  };
-
-  tasks.forEach(t=>{
-    const d = parseISODate(t.date);
-    if(!d) return;
-    const cost = Number(t.costTotal || 0);
-    const price = Number(t.price || 0);
-
-    if(d >= startMonth){
-      buckets.month.exp += cost;
-      buckets.month.rev += price;
-    }
-    if(d >= start30){
-      buckets.d30.exp += cost;
-      buckets.d30.rev += price;
-    }
-    if(d >= start365){
-      buckets.y1.exp += cost;
-      buckets.y1.rev += price;
-    }
-  });
-
-  const labels = ["Τρέχων μήνας","Τελευταίος μήνας","Τελευταίος χρόνος"];
-  const expenses = [
-    buckets.month.exp,
-    buckets.d30.exp,
-    buckets.y1.exp
-  ];
-  const revenues = [
-    buckets.month.rev,
-    buckets.d30.rev,
-    buckets.y1.rev
-  ];
-  const profits = revenues.map((r,i)=> r - expenses[i]);
-
-  const profitColors = profits.map(p=>{
-    if(p > 20) return "#16a34a";      // κέρδος – πράσινο
-    if(p < -20) return "#dc2626";     // ζημιά – κόκκινο
-    return "#f97316";                 // σχεδόν μηδέν – πορτοκαλί/κίτρινο
-  });
-
-  incomeChartInstance = new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels,
-      datasets:[
-        { label:"Έξοδα", data:expenses },
-        { label:"Έσοδα", data:revenues },
-        { label:"Κέρδος", data:profits, backgroundColor:profitColors }
-      ]
-    },
-    options:{
-      responsive:true,
-      scales:{
-        y:{beginAtZero:true}
-      }
-    }
-  });
-}
-
 /* ------------ PAGE RENDERING ------------ */
 function loadPage(page){
   const main = document.getElementById("mainContent");
@@ -1382,10 +1363,10 @@ function loadPage(page){
   if(page==="customers"){
     html = `
       <h1>Πελάτες</h1>
-      <div class="subtitle">Καταχώρηση, αναζήτηση & επεξεργασία πελατών.</div>
+      <div class="subtitle">Καταχώρηση & αναζήτηση πελατών (cloud Firestore).</div>
 
       <div class="card">
-        <h3>Νέος / Επεξεργασία πελάτη</h3>
+        <h3>Νέος πελάτης</h3>
         <label>Ονοματεπώνυμο</label>
         <input id="c_name" placeholder="π.χ. Γιάννης Παπαδόπουλος"/>
 
@@ -1429,10 +1410,10 @@ function loadPage(page){
   if(page==="tasks"){
     html = `
       <h1>Εργασίες</h1>
-      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις με κόστος & τιμή προς πελάτη.</div>
+      <div class="subtitle">Εγκαταστάσεις, βλάβες, συντηρήσεις, με παρακολούθηση κόστους.</div>
 
       <div class="card">
-        <h3>Νέα / Επεξεργασία εργασίας</h3>
+        <h3>Νέα εργασία</h3>
         <label>Πελάτης</label>
         <select id="t_customer"></select>
 
@@ -1471,9 +1452,6 @@ function loadPage(page){
         <input id="t_laborRate" type="number" step="0.5" value="10"/>
 
         <div id="t_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)</div>
-
-        <label>Τιμή προς πελάτη (€)</label>
-        <input id="t_price" type="number" step="0.01"/>
 
         <label>Σημειώσεις</label>
         <textarea id="t_notes" placeholder="Περιγραφή εργασίας, υλικά, παρατηρήσεις."></textarea>
@@ -1518,10 +1496,10 @@ function loadPage(page){
   if(page==="project"){
     html = `
       <h1>Διαχείριση έργου</h1>
-      <div class="subtitle">Υπολογισμός κόστους ανά έργο, με δυνατότητα επεξεργασίας.</div>
+      <div class="subtitle">Υπολογισμός κόστους ανά έργο.</div>
 
       <div class="card">
-        <h3>Νέο / Επεξεργασία έργου</h3>
+        <h3>Νέο έργο</h3>
 
         <label>Πελάτης</label>
         <select id="proj_customer"></select>
@@ -1556,7 +1534,7 @@ function loadPage(page){
 
         <div id="proj_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Βοηθός: 0.00 €)</div>
 
-        <div style="margin-top:10px%;">
+        <div style="margin-top:10px;">
           <button class="btn small" id="proj_save_btn">Αποθήκευση</button>
           <button class="btn secondary small" id="proj_clear_btn">Καθαρισμός</button>
         </div>
@@ -1591,7 +1569,7 @@ function loadPage(page){
       <div class="subtitle">Μελέτες BTU & προτάσεις κλιματιστικών, συνδεδεμένες με πελάτες και έργα.</div>
 
       <div class="card">
-        <h3>Νέα / Επεξεργασία μελέτης</h3>
+        <h3>Νέα μελέτη</h3>
 
         <label>Τίτλος μελέτης</label>
         <input id="study_title" placeholder="π.χ. Μελέτη διαμερίσματος 85m²"/>
