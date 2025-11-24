@@ -1,179 +1,55 @@
-:root {
-    --bg: #f4f7fb;
-    --card: #ffffff;
-    --text: #1a1a1a;
-    --muted: #6b7280;
-    --accent: #0b74de;
-    --accent-dark: #095fb6;
-    --border: #e3e7ee;
-    --sidebar-bg: #0d1b2a;
-    --sidebar-bg2: #1b263b;
-}
-
-* {
-    box-sizing: border-box;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
 body {
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
+    font-family: system-ui, sans-serif;
+    background: #f5f7fa;
 }
 
-/* ---------------- LOGIN SCREEN ---------------- */
-#loginScreen {
+.login-screen {
     position: fixed;
     inset: 0;
-    background: linear-gradient(150deg, #d5e8ff, #f4f7fb);
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    z-index: 9999;
+    align-items: center;
+    background: #eef2f7;
 }
 
-#loginScreen h1 {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--accent);
-}
-
-#loginScreen input {
-    margin-top: 10px;
-    padding: 10px 14px;
-    width: 230px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 15px;
-}
-
-#loginBtn {
-    margin-top: 14px;
-    padding: 8px 16px;
-    background: var(--accent);
-    border: none;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-}
-#loginBtn:hover {
-    background: var(--accent-dark);
-}
-
-/* ---------------- SIDEBAR ---------------- */
 .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    width: 230px;
+    width: 220px;
     height: 100vh;
-    background: var(--sidebar-bg);
-    color: white;
-    padding-top: 24px;
-}
-
-.sidebar h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 18px;
+    background: #0d1b2a;
+    color: #fff;
+    padding: 20px;
 }
 
 .menu-btn {
-    width: 85%;
-    margin: 6px auto;
-    padding: 10px 14px;
-    background: var(--sidebar-bg2);
+    width: 100%;
+    margin: 5px 0;
+    padding: 10px;
+    background: #1b263b;
     border: none;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    display: block;
+    color: #fff;
     text-align: left;
-    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
-.menu-btn:hover,
-.menu-btn.active {
+.menu-btn:hover {
     background: #415a77;
 }
 
-/* ---------------- MAIN AREA ---------------- */
 #mainContent {
     margin-left: 240px;
-    padding: 24px;
+    padding: 20px;
 }
 
-/* Titles */
-h1 {
-    margin-top: 0;
-    font-size: 22px;
-}
-
-/* ---------------- FORMS ---------------- */
-.form {
-    background: var(--card);
-    padding: 16px;
+.card {
+    background: #fff;
+    padding: 15px;
     border-radius: 12px;
-    border: 1px solid var(--border);
-    margin-bottom: 20px;
-}
-
-.form input,
-.form select,
-.form textarea {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.form button {
-    padding: 8px 14px;
-    background: var(--accent);
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 6px;
-}
-.form button:hover {
-    background: var(--accent-dark);
-}
-
-/* List items */
-.item {
-    background: var(--card);
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-}
-
-.item .del {
-    color: #d32f2f;
-    cursor: pointer;
-    font-size: 13px;
-}
-.item .del:hover {
-    text-decoration: underline;
-}
-
-/* Responsive */
-@media (max-width: 770px) {
-    .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-    }
-    #mainContent {
-        margin-left: 0;
-        padding: 12px;
-    }
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
