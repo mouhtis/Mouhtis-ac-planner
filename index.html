@@ -1,47 +1,45 @@
 <!DOCTYPE html>
 <html lang="el">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mouhtis HVAC Suite</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mouhtis HVAC Suite</title>
 
-  <!-- Firebase compat -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <!-- Load CSS -->
+    <link rel="stylesheet" href="style.css" />
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- External CSS -->
-  <link rel="stylesheet" href="style.css" />
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen">
-  <h1>Mouhtis HVAC Suite</h1>
-  <div class="subtitle">Είσοδος με κωδικό πρόσβασης.</div>
-  <input id="loginPass" type="password" placeholder="Κωδικός πρόσβασης" />
-  <button id="loginBtn">Είσοδος</button>
-</div>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen">
+        <h1>Mouhtis HVAC Suite</h1>
+        <div class="subtitle">Είσοδος με κωδικό πρόσβασης.</div>
+        <input id="loginPass" type="password" placeholder="Κωδικός πρόσβασης" />
+        <button id="loginBtn">Είσοδος</button>
+    </div>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <h2>Menu</h2>
-  <button class="menu-btn active" data-page="dashboard"><span class="icon">📊</span> Σύνοψη</button>
-  <button class="menu-btn" data-page="customers"><span class="icon">👤</span> Πελάτες</button>
-  <button class="menu-btn" data-page="tasks"><span class="icon">🛠️</span> Εργασίες</button>
-  <button class="menu-btn" data-page="project"><span class="icon">📁</span> Διαχείριση έργου</button>
-  <button class="menu-btn" data-page="study"><span class="icon">📐</span> Μελέτη κλιματισμού</button>
-</div>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <button class="menu-btn active" data-page="dashboard">📊 Σύνοψη</button>
+        <button class="menu-btn" data-page="customers">👤 Πελάτες</button>
+        <button class="menu-btn" data-page="tasks">🛠️ Εργασίες</button>
+        <button class="menu-btn" data-page="project">📁 Διαχείριση έργου</button>
+        <button class="menu-btn" data-page="study">📐 Μελέτη κλιματισμού</button>
+    </div>
 
-<!-- MAIN -->
-<div class="main" id="mainContent"></div>
+    <!-- MAIN -->
+    <div class="main" id="mainContent"></div>
 
-<!-- External JavaScript -->
-<script src="app.js"></script>
-
+    <!-- Load JavaScript -->
+    <script src="app.js"></script>
 </body>
 </html>
