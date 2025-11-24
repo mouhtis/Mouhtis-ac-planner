@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="el">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mouhtis HVAC Suite</title>
 
-    <!-- Load CSS -->
+    <!-- CSS -->
     <link rel="stylesheet" href="style.css" />
 
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-    <!-- Chart.js -->
+    <!-- Chart.js (αν το χρειαστείς στο μέλλον) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-    <!-- LOGIN SCREEN -->
+    <!-- LOGIN -->
     <div id="loginScreen">
         <h1>Mouhtis HVAC Suite</h1>
-        <div class="subtitle">Είσοδος με κωδικό πρόσβασης.</div>
         <input id="loginPass" type="password" placeholder="Κωδικός πρόσβασης" />
         <button id="loginBtn">Είσοδος</button>
     </div>
@@ -29,17 +29,19 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
         <h2>Menu</h2>
-        <button class="menu-btn active" data-page="dashboard">📊 Σύνοψη</button>
+        <button class="menu-btn" data-page="dashboard">📊 Σύνοψη</button>
         <button class="menu-btn" data-page="customers">👤 Πελάτες</button>
         <button class="menu-btn" data-page="tasks">🛠️ Εργασίες</button>
-        <button class="menu-btn" data-page="project">📁 Διαχείριση έργου</button>
+        <button class="menu-btn" data-page="projects">📁 Διαχείριση έργου</button>
         <button class="menu-btn" data-page="study">📐 Μελέτη κλιματισμού</button>
     </div>
 
     <!-- MAIN -->
-    <div class="main" id="mainContent"></div>
+    <div id="mainContent"></div>
 
-    <!-- Load JavaScript -->
+    <!-- APP LOGIC -->
     <script src="app.js"></script>
+
 </body>
+
 </html>
