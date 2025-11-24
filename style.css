@@ -1,55 +1,272 @@
-body {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: #f5f7fa;
+/* -------------------------------------------------
+   Global
+------------------------------------------------- */
+:root{
+    --bg:#eef1f6;
+    --card:#ffffff;
+    --border:#dce1e8;
+    --text:#0f172a;
+    --muted:#64748b;
+    --accent:#0b74de;
+    --accent-dark:#095fb6;
+    --accent-soft:#dbeafe;
+
+    --sidebar-bg:#0d1b2a;
+    --sidebar-bg2:#1b263b;
+
+    --good:#16a34a;
+    --bad:#dc2626;
 }
 
-.login-screen {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background: #eef2f7;
+/* General */
+*{
+    box-sizing:border-box;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 220px;
-    height: 100vh;
-    background: #0d1b2a;
-    color: #fff;
-    padding: 20px;
+body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
 }
 
-.menu-btn {
-    width: 100%;
-    margin: 5px 0;
-    padding: 10px;
-    background: #1b263b;
-    border: none;
-    color: #fff;
-    text-align: left;
-    border-radius: 8px;
-    cursor: pointer;
+/* -------------------------------------------------
+   Login Screen
+------------------------------------------------- */
+#loginScreen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:radial-gradient(circle at top, #e0f2fe, #f5f6fa);
+    z-index:9999;
+    text-align:center;
 }
 
-.menu-btn:hover {
-    background: #415a77;
+#loginScreen h1{
+    font-size:28px;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:6px;
 }
 
-#mainContent {
-    margin-left: 240px;
-    padding: 20px;
+#loginScreen .subtitle{
+    font-size:14px;
+    color:var(--muted);
+    margin-bottom:16px;
 }
 
-.card {
-    background: #fff;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+#loginPass{
+    padding:12px;
+    width:240px;
+    border-radius:10px;
+    border:1px solid #cbd5e1;
+    font-size:15px;
+    text-align:center;
+}
+
+#loginBtn{
+    margin-top:12px;
+    padding:10px 22px;
+    background:var(--accent);
+    border:none;
+    color:white;
+    border-radius:999px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+/* -------------------------------------------------
+   Sidebar Menu FIXED
+------------------------------------------------- */
+.sidebar{
+    position:fixed;
+    left:0;
+    top:0;
+    width:240px;
+    height:100vh;
+    background:var(--sidebar-bg);
+    padding:24px 20px;
+    color:white;
+    z-index:10;
+    box-shadow:3px 0 12px rgba(0,0,0,0.25);
+}
+
+.sidebar h2{
+    margin:0 0 20px 4px;
+    font-size:20px;
+    font-weight:700;
+}
+
+.menu-btn{
+    width:100%;
+    padding:12px;
+    background:var(--sidebar-bg2);
+    border-radius:10px;
+    color:white;
+    border:none;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+    cursor:pointer;
+    font-size:15px;
+    transition:0.2s;
+}
+
+.menu-btn:hover{
+    background:#415a77;
+}
+
+.menu-btn.active{
+    background:#3d5a78;
+    box-shadow:0 0 10px rgba(255,255,255,0.15);
+}
+
+/* -------------------------------------------------
+   Main Content FIX
+------------------------------------------------- */
+.main{
+    margin-left:260px;     /* FIX → η σελίδα πλέον δεν καλύπτεται από το menu */
+    padding:25px 30px;
+    min-height:100vh;
+    position:relative;
+    z-index:1;
+}
+
+/* Titles */
+h1{
+    margin:0 0 8px;
+    font-size:26px;
+    font-weight:700;
+}
+
+h3{
+    margin:0 0 6px;
+}
+
+/* -------------------------------------------------
+   Cards
+------------------------------------------------- */
+.card{
+    background:white;
+    padding:18px;
+    border-radius:14px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    border:1px solid var(--border);
+    margin-bottom:20px;
+}
+
+/* Inputs */
+label{
+    display:block;
+    font-size:13px;
+    color:var(--muted);
+    margin-top:10px;
+    margin-bottom:5px;
+}
+
+input, select, textarea{
+    width:100%;
+    padding:9px 12px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    font-size:14px;
+}
+
+input:focus, select:focus, textarea:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px var(--accent-soft);
+}
+
+/* Buttons */
+.btn{
+    padding:9px 18px;
+    background:var(--accent);
+    color:white;
+    border:none;
+    border-radius:999px;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+.btn.secondary{
+    background:white;
+    color:var(--accent);
+    border:1px solid var(--accent-soft);
+}
+
+/* Search box */
+.search-box{
+    width:100%;
+    padding:10px 14px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    margin-bottom:12px;
+}
+
+/* -------------------------------------------------
+   Tables
+------------------------------------------------- */
+table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+}
+
+th, td{
+    border-bottom:1px solid #e2e8f0;
+    padding:8px 6px;
+}
+
+th{
+    background:#f1f5f9;
+    color:#475569;
+    font-weight:600;
+}
+
+/* Links in tables */
+.link{
+    color:var(--accent);
+    cursor:pointer;
+    font-weight:600;
+}
+
+/* Pills */
+.pill{
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:12px;
+}
+
+.pill.green{background:#dcfce7;color:#166534;}
+.pill.red{background:#fee2e2;color:#b91c1c;}
+.pill.orange{background:#ffedd5;color:#9a3412;}
+
+/* -------------------------------------------------
+   Dashboard Cards
+------------------------------------------------- */
+.dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    gap:16px;
+}
+
+.stat-card{
+    background:white;
+    padding:16px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    box-shadow:0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* Charts */
+.chart-wrapper{
+    padding:14px;
+    background:white;
+    border-radius:12px;
+    border:1px solid var(--border);
+    box-shadow:0 2px 6px rgba(0,0,0,0.06);
 }
