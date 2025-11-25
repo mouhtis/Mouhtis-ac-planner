@@ -23,8 +23,8 @@
     --accent:#0b74de;
     --accent-dark:#095fb6;
     --accent-soft:#dbeafe;
-    --sidebar-bg:#0d1b2a;
-    --sidebar-bg2:#1b263b;
+    --sidebar-bg:#e0f2ff;
+    --sidebar-bg2:#c7ddff;
     --good:#16a34a;
     --bad:#dc2626;
   }
@@ -91,21 +91,22 @@
     width: 230px;
     height: 100vh;
     background: var(--sidebar-bg2);
-    color: black;
+    color: #0b1f4a;
     padding-top: 20px;
-}
+  }
   .sidebar h2 {
     text-align: center;
     margin-bottom: 16px;
     font-weight: 600;
     font-size:18px;
+    color:#0b1f4a;
   }
   .menu-btn {
     width: 90%;
     margin: 6px auto;
     padding: 10px 12px;
-    background: var(--sidebar-bg2);
-    color: white;
+    background: transparent;
+    color: #0b1f4a;
     border: none;
     border-radius: 8px;
     text-align: left;
@@ -117,10 +118,10 @@
   }
   .menu-btn span.icon{width:20px;text-align:center;}
   .menu-btn:hover {
-    background: #415a77;
+    background: #bfd7ff;
   }
   .menu-btn.active{
-    background:#415a77;
+    background:#bfd7ff;
   }
 
   /* MAIN */
@@ -327,9 +328,6 @@
   <button class="menu-btn" data-page="project">
     <span class="icon">📁</span> Διαχείριση έργου
   </button>
-  <button class="menu-btn" data-page="study">
-    <span class="icon">📐</span> Μελέτη κλιματισμού
-  </button>
 </div>
 
 <!-- MAIN AREA -->
@@ -368,7 +366,6 @@ let customers = [];
 let tasks = [];
 let projects = [];
 let studies = [];
-let profitChartInstance = null;
 let taskTypeChartInstance = null;
 let incomeChartInstance = null;
 
@@ -573,7 +570,7 @@ function renderTaskList(){
     wrap.innerHTML = '<div class="muted">Δεν υπάρχουν εργασίες.</div>';
     return;
   }
-  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία</th><th>Κόστος (€)</th><th>Τιμή (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Τίτλος</th><th>Πελάτης</th><th>Τύπος</th><th>Ημ/νία & Ώρα</th><th>Κόστος (€)</th><th>Τιμή (€)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>';
   arr.forEach(t=>{
     const client = customers.find(c=>c.id===t.customerId);
     const typeLabel =
@@ -590,7 +587,7 @@ function renderTaskList(){
       <td>${t.title||""}</td>
       <td>${client?client.name:"—"}</td>
       <td>${typeLabel}</td>
-      <td>${t.date||""}</td>
+      <td>${(t.date||"")}${t.time ? " " + t.time : ""}</td>
       <td>${costTotal.toFixed(2)}</td>
       <td>${price.toFixed(2)}</td>
       <td>${pill}</td>
@@ -620,6 +617,7 @@ function startEditTask(id){
   $("#t_type").value = t.type || "installation";
   $("#t_title").value = t.title || "";
   $("#t_date").value = t.date || "";
+  $("#t_time").value = t.time || "";
   $("#t_status").value = t.status || "open";
   $("#t_notes").value = t.notes || "";
   $("#t_unitCost").value = t.unitCost ?? "";
@@ -637,6 +635,7 @@ async function saveTask(){
   const type = $("#t_type").value;
   const title = $("#t_title").value.trim();
   const date = $("#t_date").value;
+  const time = $("#t_time").value;
   const status = $("#t_status").value;
   const notes = $("#t_notes").value.trim();
   const unitCost = parseFloat($("#t_unitCost").value || "0") || 0;
@@ -659,6 +658,7 @@ async function saveTask(){
     type,
     title,
     date,
+    time,
     status,
     notes,
     unitCost,
@@ -698,6 +698,7 @@ function clearTaskForm(clearMsg=true){
   $("#t_type").value="installation";
   $("#t_title").value="";
   $("#t_date").value="";
+  $("#t_time").value="";
   $("#t_status").value="open";
   $("#t_notes").value="";
   $("#t_unitCost").value="";
@@ -895,11 +896,11 @@ async function deleteProject(id){
     renderProjectList();
   }catch(e){
     console.error(e);
-    alert("Σφάλμα στη διαγραφή.");
+    alert("Σφάλμα στη διαγραφή.";
   }
 }
 
-/* ------------ STUDIES CRUD ------------ */
+/* ------------ STUDIES CRUD (παραμένει backend, χωρίς ενότητα UI) ------------ */
 async function loadStudies(){
   try{
     const snap = await db.collection("studies").orderBy("createdAt","desc").get();
@@ -1196,12 +1197,6 @@ function renderDashboard(){
           Μ.ο. κόστους: ${stats.avgProjectCost.toFixed(0)}€ • Μέγιστο: ${stats.maxProjectCost.toFixed(0)}€
         </div>
       </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Μελέτες κλιματισμού</div>
-        <div class="stat-value">${stats.totalStudies}</div>
-        <div class="stat-sub">Μ.ο. εμβαδού: ${stats.avgStudyArea.toFixed(1)} m²</div>
-      </div>
     </div>
 
     <div class="dashboard-grid" style="margin-bottom:16px;">
@@ -1226,11 +1221,6 @@ function renderDashboard(){
 
     <div class="charts-grid">
       <div class="chart-wrapper">
-        <h3>Κέρδη ανά μήνα</h3>
-        <canvas id="profitChart" height="180"></canvas>
-      </div>
-
-      <div class="chart-wrapper">
         <h3>Κατανομή εργασιών ανά τύπο</h3>
         <canvas id="taskTypeChart" height="180"></canvas>
       </div>
@@ -1251,43 +1241,8 @@ function renderDashboard(){
     profitEl.style.color = stats.yearlyProfit >= 0 ? "var(--good)" : "var(--bad)";
   }
 
-  drawProfitChart();
   drawTaskTypeChart();
   drawIncomeChart();
-}
-
-function drawProfitChart(){
-  const ctx = document.getElementById("profitChart");
-  if(!ctx) return;
-  if(profitChartInstance) profitChartInstance.destroy();
-  const now = new Date();
-  const year = now.getFullYear();
-  const labels = ["Ιαν","Φεβ","Μαρ","Απρ","Μαι","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
-  const data = new Array(12).fill(0);
-  projects.forEach(p=>{
-    const d = parseISODate(p.date);
-    if(d && d.getFullYear()===year){
-      const m = d.getMonth();
-      data[m] += Number(p.costTotal||0);
-    }
-  });
-  profitChartInstance = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets:[{
-        label:"Έξοδα έργων (€)",
-        data,
-      }]
-    },
-    options:{
-      responsive:true,
-      plugins:{legend:{display:false}},
-      scales:{
-        y:{beginAtZero:true}
-      }
-    }
-  });
 }
 
 function drawTaskTypeChart(){
@@ -1480,6 +1435,9 @@ function loadPage(page){
         <label>Ημερομηνία</label>
         <input id="t_date" type="date"/>
 
+        <label>Ώρα</label>
+        <input id="t_time" type="time"/>
+
         <label>Κατάσταση</label>
         <select id="t_status">
           <option value="open">Ανοιχτή</option>
@@ -1502,6 +1460,7 @@ function loadPage(page){
 
         <div id="t_total_view" class="muted" style="margin-top:6px;">Συνολικό κόστος: 0.00 € (Εργασία: 0.00 €)</div>
 
+        <h3 style="margin-top:10px;">Τιμή προς πελάτη</h3>
         <label>Τιμή προς πελάτη (€)</label>
         <input id="t_price" type="number" step="0.01"/>
 
@@ -1613,70 +1572,6 @@ function loadPage(page){
       if(el) el.oninput = calcProjectTotalLocal;
     });
     calcProjectTotalLocal();
-  }
-
-  if(page==="study"){
-    html = `
-      <h1>Μελέτη κλιματισμού</h1>
-      <div class="subtitle">Μελέτες BTU & προτάσεις κλιματιστικών, συνδεδεμένες με πελάτες και έργα.</div>
-
-      <div class="card">
-        <h3>Νέα / Επεξεργασία μελέτης</h3>
-
-        <label>Τίτλος μελέτης</label>
-        <input id="study_title" placeholder="π.χ. Μελέτη διαμερίσματος 85m²"/>
-
-        <label>Πελάτης</label>
-        <select id="study_customer"></select>
-
-        <label>Σχετικό έργο (προαιρετικό)</label>
-        <select id="study_project"></select>
-
-        <label>Συνολικό εμβαδόν (m²)</label>
-        <input id="study_area" type="number" step="1"/>
-
-        <label>Χρήση χώρου</label>
-        <select id="study_usage">
-          <option value="home">Κατοικία</option>
-          <option value="office">Γραφείο</option>
-          <option value="shop">Κατάστημα</option>
-        </select>
-
-        <label>Θερμομόνωση / προσανατολισμός</label>
-        <textarea id="study_ins" placeholder="π.χ. Δυτικό σαλόνι, μέτρια θερμομόνωση, μεγάλα ανοίγματα."></textarea>
-
-        <label>Σύνοψη / BTU / προτάσεις μονάδων</label>
-        <textarea id="study_summary" placeholder="Θα παραχθεί κείμενο μετά τον υπολογισμό."></textarea>
-
-        <div style="margin-top:8px;">
-          <button class="btn small" id="study_calc_btn">Υπολογισμός BTU</button>
-        </div>
-
-        <div style="margin-top:10px;">
-          <button class="btn small" id="study_save_btn">Αποθήκευση</button>
-          <button class="btn secondary small" id="study_clear_btn">Καθαρισμός</button>
-        </div>
-        <div id="study_msg" class="muted" style="margin-top:4px;"></div>
-      </div>
-
-      <div class="card">
-        <h3>Αρχείο μελετών</h3>
-        <input id="studies_search" class="search-box" placeholder="Αναζήτηση (τίτλος, πελάτης, έργο)..."/>
-        <div id="studies_list" class="muted">Φόρτωση...</div>
-      </div>
-    `;
-    main.innerHTML = html;
-
-    Promise.all([loadCustomers(), loadProjects()]).then(()=>{
-      fillCustomerSelect("study_customer");
-      fillProjectSelect("study_project");
-    });
-    loadStudies();
-
-    $("#studies_search").oninput = renderStudyList;
-    $("#study_calc_btn").onclick = applyStudyCalc;
-    $("#study_save_btn").onclick = saveStudy;
-    $("#study_clear_btn").onclick = ()=>clearStudyForm(true);
   }
 
   $all(".menu-btn").forEach(btn=>{
