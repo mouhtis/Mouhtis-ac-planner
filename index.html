@@ -1206,7 +1206,7 @@ function renderDashboard(){
 
     <div class="dashboard-grid" style="margin-bottom:16px;">
       <div class="stat-card">
-        <div class="stat-label">Συνολικά έσοδα έτους (έργα + εργασίες)</div>
+        <div class="stat-label">Συνολικά έσοδα έτους (εργασίες)</div>
         <div class="stat-value">${stats.yearlyRevenues.toFixed(0)}€</div>
         <div class="stat-sub">Από την αρχή του έτους</div>
       </div>
@@ -1214,15 +1214,14 @@ function renderDashboard(){
       <div class="stat-card">
         <div class="stat-label">Συνολικά έξοδα έτους (έργα + εργασίες)</div>
         <div class="stat-value">${stats.yearlyExpenses.toFixed(0)}€</div>
-      
         <div class="stat-sub">Από την αρχή του έτους</div>
-      
+      </div>
+
       <div class="stat-card">
         <div class="stat-label">Συνολικό κέρδος έτους</div>
         <div class="stat-value" id="profitYear"></div>
         <div class="stat-sub">Έσοδα - Έξοδα</div>
       </div>
-</div>
     </div>
 
     <div class="charts-grid">
@@ -1246,10 +1245,14 @@ function renderDashboard(){
     </div>
   `;
 
+  const profitEl = document.getElementById("profitYear");
+  if (profitEl) {
+    profitEl.textContent = stats.yearlyProfit.toFixed(0) + "€";
+    profitEl.style.color = stats.yearlyProfit >= 0 ? "var(--good)" : "var(--bad)";
+  }
+
   drawProfitChart();
   drawTaskTypeChart();
-  document.getElementById("profitYear").innerHTML = stats.yearlyProfit.toFixed(0) + "€";
-  if(stats.yearlyProfit>=0){document.getElementById("profitYear").style.color="var(--good)";}else{document.getElementById("profitYear").style.color="var(--bad)";}
   drawIncomeChart();
 }
 
@@ -1366,9 +1369,13 @@ function drawIncomeChart(){
   ];
   const profits = revenues.map((r,i)=> r - expenses[i]);
 
+  const rootStyles = getComputedStyle(document.documentElement);
+  const goodColor = rootStyles.getPropertyValue("--good").trim() || "#16a34a";
+  const badColor = rootStyles.getPropertyValue("--bad").trim() || "#dc2626";
+
   const profitColors = profits.map(p=>{
-    if(p > 20) return "#16a34a";      // κέρδος – πράσινο
-    if(p < -20) return "#dc2626";     // ζημιά – κόκκινο
+    if(p > 20) return goodColor;      // κέρδος – πράσινο
+    if(p < -20) return badColor;      // ζημιά – κόκκινο
     return "#f97316";                 // σχεδόν μηδέν – πορτοκαλί/κίτρινο
   });
 
